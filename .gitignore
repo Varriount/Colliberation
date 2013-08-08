@@ -1,6 +1,7 @@
 *.pyc
 libs
 *.sublime-*
+docs
 # C extensions
 *.so
 
