@@ -1,4 +1,5 @@
 from twisted.internet.protocol import Protocol
+from twisted.internet import reactor
 from twisted.protocols.policies import TimeoutMixin
 from twisted.internet.task import LoopingCall
 
@@ -8,23 +9,29 @@ from colliberation.serializer import DiskSerializer
 from colliberation.utils import pipeline_funcs
 
 from diff_match_patch import diff_match_patch as DMP
+from copy import deepcopy
 
 from warnings import warn
 
-dmp = DMP()
+flexible_dmp = DMP()
+fragile_dmp = DMP()
+fragile_dmp.Match_Threshold = 0.0
+fragile_dmp.Match_Distance = 0.0
+fragile_dmp.Patch_DeleteThreshold = 0.0
 WAITING_FOR_AUTH = 1
 AUTHORIZED = 2
 
 
 class BaseCollaborationProtocol(Protocol, TimeoutMixin):
 
-    """ A symmetric, nearly stateless protocol used by collaboration clients
+    """ A symmetric protocol used by collaboration clients
     and servers.
 
     This class serves as a skeletion, only implementing the core
     event handlers and hooks.
     """
     timeout_rate = 60
+    send_delay = 1
     connected = False
 
     def __init__(self, **kwargs):
@@ -148,6 +155,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         BaseCollaborationProtocol.__init__(self)
         # Document datas
         self.open_docs = kwargs.get('open_docs', {})  # id : Doc
+        self.shadow_docs = kwargs.get('shadow_docs', {})
         self.available_docs = kwargs.get('available_docs', {})  # id : Doc
 
         # Internal objects
@@ -239,64 +247,51 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def document_opened(self, data, func_hooks=None):
         """ Open a document.
 
-        We transfer the document object from available_docs to
-        open documents. If the document is not in available_docs, send
-        out a warning.
-        Hooks:
-            Pipeline Hooks
+        We retrieve the document object from available_docs to
+        open_documents, and create a shadow copy.
         """
         if func_hooks is None:
             hooks = self.doc_open_hooks
 
-        if data.document_id not in self.available_docs:
-            self._warn_doc_not_available(data.document_id)
-            self.document_added(data)
-
-        document = self.available_docs.pop(data.document_id)
+        document = self.available_docs[data.document_id]
         document = pipeline_funcs(hooks, document)
 
         if document is not None:
             self.open_docs[data.document_id] = document
+            self.shadow_docs[data.document_id] = deepcopy(document)
             return True
         return False
 
     def document_closed(self, data, func_hooks=None):
         """ Close a document.
 
-        We transfer the doc from open_docs to available_docs. If the document
-        is not found, raise a warning.
+        We remove the doc from open_docs and shadow_docs.
         """
         if func_hooks is None:
             hooks = self.doc_close_hooks
 
-        if data.document_id not in self.open_docs:
-            self._warn_doc_not_open(data.document_id)
-        else:
-            document = self.open_docs.pop(data.document_id)
-            document = pipeline_funcs(hooks, document)
+        document = self.open_docs.pop(data.document_id)
+        self.shadow_docs.pop(data.document_id)
+        document = pipeline_funcs(hooks, document)
 
-            if document is not None:
-                self.available_docs[data.document_id] = document
-                return True
+        if document is not None:
+            self.available_docs[data.document_id] = document
+            return True
         return False
 
     def document_saved(self, data, func_hooks=None):
         """ Save a document
 
-        We try calling the serializer on the selected document,
-        warning if the document is not open.
+        We try calling the serializer on the selected document.
         """
         if func_hooks is None:
             hooks = self.doc_save_hooks
 
-        if data.document_id not in self.open_docs:
-            self._warn_doc_not_open(data.document_id)
-        else:
-            document = self.open_docs[data.document_id]
-            document = pipeline_funcs(hooks, document)
-            if document is not None:
-                self.serializer.save_document(document)
-                return True
+        document = self.open_docs[data.document_id]
+        document = pipeline_funcs(hooks, document)
+        if document is not None:
+            self.serializer.save_document(document)
+            return True
         return False
 
     def document_added(self, data, func_hooks=None):
@@ -311,7 +306,9 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if data.document_id in self.available_docs:
             warn('Document {} already exists'.format(data.document_id))
         else:
-            document = self.doc_class(id=data.document_id)
+            document = self.doc_class(id=data.document_id,
+                                      version=data.version,
+                                      name=data.document_name)
             document = pipeline_funcs(hooks, document)
             if document is not None:
                 self.available_docs[data.document_id] = document
@@ -332,6 +329,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
                  .format(data.document_id))
 
     # Document content event handlers.
+    # These handlers send data back to sender based on whether they
+    # recieved data merges correctly.
 
     def name_modified(self, data):
         """ Rename a document.
@@ -352,14 +351,35 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def text_modified(self, data):
         """ Modify the text in the document.
 
-        Retrieve the document open_docs, and patch it with the given patches.
+        Retrieves the open document and its shadow, and performs a
+        flexible and fragile patch using the sent data, respectively.
+        A diff of the shadow and the open document is then sent back
+        across the wire. The shadow is then updated with the open
+        documents content.
+        This event handler is unique in that it sends data back to the caller.
         """
-        if data.document_id not in self.open_docs:
-            self._warn_doc_not_open(data.document_id)
-        else:
-            patches = dmp.patch_fromText(data.modifications)
-            document = self.open_docs[data.document_id]
-            document.patch(patches)
+        d_patches = flexible_dmp.patch_fromText(data.modifications)
+        s_patches = fragile_dmp.patch_fromText(data.modifications)
+
+        document = self.open_docs[data.document_id]
+        shadow = self.shadow_docs[data.document_id]
+
+        # Add plugin call here
+        document.patch(d_patches, dmp=flexible_dmp)
+        shadow.patch(s_patches, dmp=fragile_dmp)
+
+        mods = flexible_dmp.patch_toText(shadow.make_patches(document.content))
+        shadow.update(document)
+        reactor.callLater(
+            self.send_delay,
+            self.transport.write,
+            make_packet(
+                'text_modified',
+                document_id=data.document_id,
+                version=document.version,
+                modifications=mods
+            )
+        )
 
     def metadata_modified(self, data, func_hooks=None):
         """

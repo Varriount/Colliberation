@@ -12,6 +12,7 @@ class CollabClientFactory(ReconnectingClientFactory):
     """
 
     nextid = 0
+    client_class = CollabClientProtocol
 
     def __init__(self):
         self.protocols = dict()
@@ -38,13 +39,10 @@ class CollabClientFactory(ReconnectingClientFactory):
     def buildProtocol(self, address):
         print('Connecting to {0}...'.format(str(address)))
 
-        protocol = CollabClientProtocol()
+        protocol = self.client_class()
         protocol.factory = self
         protocol.address = address
         signature = address.host + str(address.port)
 
         self.protocols[signature] = protocol
-
-        defer = self.temp.popitem(signature)
-        defer.callback(protocol)
         return protocol

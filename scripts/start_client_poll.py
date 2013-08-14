@@ -63,7 +63,7 @@ packets = {'metadata_mod_packet': metadata_mod_packet,
 
 
 def main():
-    port = 6685
+    port = 6687
     address = '127.0.0.1'
 
     collab_factory = CollabClientFactory()
@@ -74,7 +74,7 @@ def main():
     shell_factory.namespace['factory'] = collab_factory
     shell_factory.namespace.update(packets)
 
-    collab_connection = collab_factory.connect(address, port)
+    collab_connection = collab_factory.connect_to_server(address, port)
     manhole_connection = reactor.listenTCP(6686, shell_factory)
 
     reactor.run()

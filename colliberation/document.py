@@ -58,45 +58,46 @@ class Document(object):
             metadata=deepcopy(self.metadata, memo)
         )
 
-    def insert_text(self, position, text):
-        self.content = (self.content[:position] +
+    def change_text(self, start, text, end):
+        self.content = (self.content[:start] +
                         text +
-                        self.content[position:]
+                        self.content[end:]
                         )
 
-    def delete_text(self, position, text):
-        self.content = (self.content[:position] +
-                        self.content[len(text):]
+    def delete_text(self, start, end):
+        self.content = (self.content[:start] +
+                        self.content[end:]
                         )
 
-    def replace_text(self, position, text):
-        self.content = (self.content[:position] +
-                        text +
-                        self.content[len(text):]
-                        )
-
-    def diff(self, text):
+    def diff(self, text, dmp=dmp):
         """
         Generates list of diffs from the documents content against
         the given text.
         """
         diffs = dmp.main_diff(self.content, text)
-        diffs = dmp.diff_cleanupEfficiency(diffs)
         return diffs
 
-    def make_patches(self, text):
+    def make_patches(self, text, dmp=dmp):
         """ Makes a series of patches against the given text.
 
         Diffs the given text with the document's content, and transforms
         the diff into a series of patches.
         """
-        data = dmp.main_diff(self.content, text)
-        data = dmp.diff_cleanupEfficiency(data)
+        data = dmp.diff_main(self.content, text)
         data = dmp.patch_make(self.content, data)
         return data
 
-    def patch(self, patches):
-        new_content, results = dmp.patch_main(self.content, patches)
-        print("Path results: {}".format(results))
-        self.content = new_content
+    def patch(self, patches, dmp=dmp):
+        new_content, results = dmp.patch_apply(patches, self)
+        if len(results) != 0:
+            print("Patch results: {}".format(results))
         return results
+
+    def update(self, document):
+        """ Updates this document to match the other document
+        """
+        self.name = document.name
+        self.content = document.content
+        self.version = document.version
+        self.url = document.url
+        self.metadata = document.metadata
