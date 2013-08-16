@@ -5,6 +5,7 @@ from colliberation.interfaces import IDocument
 from diff_match_patch import diff_match_patch as DMP
 
 from copy import deepcopy
+from twisted.internet.defer import Deferred
 
 dmp = DMP()
 
@@ -18,7 +19,10 @@ class Document(object):
     """
     implements(IDocument)
 
+    state_deferral = None
+
     def __init__(self, **kwargs):
+        self.id = kwargs.get('id', 0)
         self.name = kwargs.get('name', '')
         self.content = kwargs.get('content', '')
         self.version = kwargs.get('version', 0)
@@ -101,3 +105,10 @@ class Document(object):
         self.version = document.version
         self.url = document.url
         self.metadata = document.metadata
+
+    def open(self):
+        self.state_deferral = Deferred()
+        return self.state_deferral
+
+    def close(self):
+        self.state_deferral.callback(self)

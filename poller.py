@@ -132,12 +132,12 @@ def main():
 
     reactor.run()
 
-
-try:
-    main()
-except Exception:
-    print(traceback.format_exc())
-    raw_input()
-else:
-    import time
-    time.sleep(30)
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception:
+        print(traceback.format_exc())
+        raw_input()
+    else:
+        import time
+        time.sleep(30)

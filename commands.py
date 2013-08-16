@@ -1,4 +1,4 @@
-from sublime_plugin import ApplicationCommand, EventListener
+from sublime_plugin import ApplicationCommand
 import sublime
 import sys
 import os
@@ -15,9 +15,8 @@ from sublime_utils import install_twisted
 install_twisted()
 
 # Now back to our regularly scheduled programming
-from colliberation.client.factory import CollabClientFactory
-from sublime_utils import MultiPrompt, views_from_buffer
-from bidict import bidict
+from core import SublimeClientFactory
+from sublime_utils import MultiPrompt
 
 """
 To recieve and send events from the editor to the client object,
@@ -33,161 +32,16 @@ class ColliberationCore(object):
     and factory, to allow children of this class to respond to events.
     This allows semi-global state to be managed.
     """
-    factory = CollabClientFactory()
+    factory = SublimeClientFactory()
     client = None
 
-    """
-    When recieving a message,
-        Display it
-    When recieving an error,
-        Display it
-    When requested to open a document,
-        Search for the document's file
-        Load the file
-    When requested to close a document,
-    When requested to save a document,
-    When requested to add a document,
-    When requested to delete a document,
-    When requested to modify a document's name,
-    When requested to modify a document's content,
-        Lookup the view with the corresponding document_id,
-    When requested to modify a document's metadata,
-    """
-
-# Event Listener
-
-class ColliberationEventListener(EventListener, ColliberationCore):
-
-    """ A dual event listener.
-    An event listener for both events in the sublime text editor
-    and events in the colliberation client.
-    """
-
-    views = bidict()  # View ID : Document ID
-
-    def __init__(self):
-        print("Started!")
-
-    def filter_event(method):
-        """
-        Decorator to filter out unwanted events, by looking up views.
-        """
-
-        def _filter_event(self, view):
-            if view.id in self.views:
-                method(view)
-        return _filter_event
-
-    # Sublime Text Events
-
-    @filter_event
-    def on_new(self, view):
-        pass
-
-    @filter_event
-    def on_load(self, view):
-        """
-        """
-
-    @filter_event
-    def on_clone(self, view):
-        pass
-
-    @filter_event
-    def on_close(self, view):
-        """
-        Abandon ship, and jump to the next available view on the document,
-        if there is one.
-        """
-        old_view_id, document_id = self.views.pop(view.id)
-        available_views = views_from_buffer(view.buffer_id)
-        if available_views:
-            new_view_id = available_views[0].id
-            self.views[new_view_id] = document_id
-
-    @filter_event
-    def on_pre_save(self, view):
-        """
-        Save the document to temp storage, to prevent save dialogue box
-        from appearing. Notify the client that the document has been saved."""
-
-    @filter_event
-    def on_post_save(self, view):
-        pass
-
-    @filter_event
-    def on_modified(self, view):
-        pass
-
-    @filter_event
-    def on_selection_modified(self, view):
-        pass
-
-    @filter_event
-    def on_activated(self, view):
-        pass
-
-    @filter_event
-    def on_deactivated(self, view):
-        pass
-
-
-    # Colliberation Client Events
-    def message_recieved(self, message):
-        """Display the message"""
-        sublime.status_message(message)
-
-    def error_recieved(self, error):
-        """Display the error."""
-        sublime.error_message(error)
-
-    def document_opened(self, document):
-        """ Open the document. 
-        Open a window and display the document object'
-        content.
-        """
-        sublime.active_window().open_file(document.url)
-
-    def document_closed(self, document):
-        """
-        Ask the user whether or not to close the document.
-        """
-        sublime.status_message("Closing document.")
-
-    def document_opened(self, document):
-        pass
-
-    def document_closed(self, document):
-        pass
-
-    def document_added(self, document):
-        pass
-
-    def document_deleted(self, document):
-        pass
-
-    def document_saved(self, document):
-        pass
-
-    def name_modified(self, document):
-        pass
-
-    def text_modified(self, document):
-        pass
-
-    def metadata_modified(self, document):
-        pass
-
-    def version_modified(self, document):
-        pass
-
-
 # Commands
+
 
 class CollaborationCommand(ApplicationCommand, ColliberationCore):
 
     """
-    Base class for collaboration commands. 
+    Base class for collaboration commands.
     Provides utility functions and such.
     """
 

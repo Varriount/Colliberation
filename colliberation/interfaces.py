@@ -2,7 +2,6 @@
 Interfaces defining base components required by colliberation.
 """
 from zope.interface import Interface, Attribute
-from bravo_plugin import IBravoPlugin, ISortedPlugin
 
 
 class IDocument(Interface):
@@ -136,7 +135,7 @@ event_hooks = {}  # Updated below, after each section of plugins
 # Document event hooks
 
 
-class IDocOpenedHook(IBravoPlugin):
+class IDocOpenedHook(Interface):
 
     def document_opened(protocol, document):
         """ Interface for plugins interested in requests to open a document.
@@ -147,7 +146,7 @@ class IDocOpenedHook(IBravoPlugin):
         """
 
 
-class IDocClosedHook(IBravoPlugin):
+class IDocClosedHook(Interface):
 
     def document_closed(protocol, document):
         """ Interface for plugins interested in requests to close a document.
@@ -158,7 +157,7 @@ class IDocClosedHook(IBravoPlugin):
         """
 
 
-class IDocSavedHook(IBravoPlugin):
+class IDocSavedHook(Interface):
 
     def document_saved(protocol, document):
         """ Interface for plugins interested in document save requests.
@@ -169,7 +168,7 @@ class IDocSavedHook(IBravoPlugin):
         """
 
 
-class IDocAddedHook(IBravoPlugin):
+class IDocAddedHook(Interface):
 
     def document_added(protocol, document):
         """ Interface for plugins interested in document creation requests.
@@ -180,7 +179,7 @@ class IDocAddedHook(IBravoPlugin):
         """
 
 
-class IDocDeletedHook(IBravoPlugin):
+class IDocDeletedHook(Interface):
 
     def document_deleted(protocol, document):
         """ Interface for plugins interested in document deletion requests.
@@ -195,7 +194,7 @@ document_hooks = {}
 # Document data event hooks
 
 
-class ITextChangedHook(IBravoPlugin):
+class ITextChangedHook(Interface):
 
     def text_changed(protocol, document, changes):
         """ Interface for plugins interested in requests to change
@@ -209,7 +208,7 @@ class ITextChangedHook(IBravoPlugin):
         """
 
 
-class INameChangedHook(IBravoPlugin):
+class INameChangedHook(Interface):
 
     def name_changed(protocol, document, new_name):
         """ Interface for plugins interested in requests to change a
@@ -222,7 +221,7 @@ class INameChangedHook(IBravoPlugin):
         """
 
 
-class IMetadataChangedHook(IBravoPlugin):
+class IMetadataChangedHook(Interface):
 
     def metadata_changed(protocol, document, type, key, value):
         """ Interface for plugins interested in requests to change
@@ -237,7 +236,7 @@ class IMetadataChangedHook(IBravoPlugin):
         """
 
 
-class IVersionChangedHook(IBravoPlugin):
+class IVersionChangedHook(Interface):
 
     def version_changed(protocol, document, new_version):
         """ Interface for plugins interested in requests to change a
@@ -252,7 +251,7 @@ class IVersionChangedHook(IBravoPlugin):
 # Misc event hooks
 
 
-class IMessageHook(IBravoPlugin):
+class IMessageHook(Interface):
 
     def message_recieved(protocol, message):
         """ Interface for plugins interested in protocol messages.
@@ -263,7 +262,7 @@ class IMessageHook(IBravoPlugin):
         """
 
 
-class IErrorHook(IBravoPlugin):
+class IErrorHook(Interface):
 
     def error_recieved(protocol, error_type, message):
         """ Interface for plugins interested in protocol error messages.

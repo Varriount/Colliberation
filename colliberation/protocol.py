@@ -259,8 +259,17 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if document is not None:
             self.open_docs[data.document_id] = document
             self.shadow_docs[data.document_id] = deepcopy(document)
+            d = document.open()
+            d.addCallback(self.callback)
             return True
         return False
+
+    def callback(self, doc):
+        p = make_packet('document_closed',
+                        document_id=doc.id,
+                        version=doc.version)
+        self.document_closed(p)
+        self.transport.write(p)
 
     def document_closed(self, data, func_hooks=None):
         """ Close a document.
