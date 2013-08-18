@@ -1,0 +1,14 @@
+{
+    // Server Settings
+    "default port": 6689 ,
+    "default ip": "127.0.0.1" ,
+    "storage path": "/" ,
+    "operation limit": 20 ,
+    "revision limit": 20 ,
+
+    // Client Settings
+    "default username": "username" ,
+    "default password": "password" ,
+    "storage path": "/",
+    "connection attempts": 3
+}

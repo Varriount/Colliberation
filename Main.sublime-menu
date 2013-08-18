@@ -1,0 +1,42 @@
+[
+    {
+        "caption": "Collaboration",
+        "mnemonic": "C",
+        "id": "collaboration",
+        "children":
+        [
+            {
+                "caption": "Connect to Server",
+                "command": "connect_to_server"
+            },
+            {
+                "caption": "Disconnect from Server",
+                "command": "disconnect_from_server"
+            },
+            {
+                "caption": "Add Shared Document",
+                "command": "add_document"
+            },
+            {
+                "caption": "Create Shared Document",
+                "command": "create_document"
+            },
+            {
+                "caption": "Delete Shared Document",
+                "command": "delete_document"
+            },
+            {
+                "caption": "Rename Shared Document",
+                "command": "rename_document"
+            },
+            {
+                "caption": "List Shared Documents",
+                "command": "list_available_documents"
+            },
+            {
+                "caption": "Open Shared Document",
+                "command": "open_document"
+            },
+        ]
+    }
+]

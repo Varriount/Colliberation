@@ -1,0 +1,38 @@
+[
+    {
+        "caption": "Collaboration: Connect to Server",
+        "command": "connect_to_server"
+    },
+    {
+        "caption": "Collaboration: Disconnect from Server",
+        "command": "disconnect_from_server"
+    },
+    {
+        "caption": "Collaboration: Add Shared Document",
+        "command": "add_document"
+    },
+    {
+        "caption": "Collaboration: Create Shared Document",
+        "command": "create_document"
+    },
+    {
+        "caption": "Collaboration: Delete Shared Document",
+        "command": "delete_document"
+    },
+    {
+        "caption": "Collaboration: Rename Shared Document",
+        "command": "rename_document"
+    },
+    {
+        "caption": "Collaboration: List Shared Documents",
+        "command": "list_available_documents"
+    },
+    {
+        "caption": "Collaboration: Open Shared Document",
+        "command": "open_document"
+    },
+    {
+        "caption": "Collaboration: Open log view",
+        "command": "open_log_view"
+    }
+]
