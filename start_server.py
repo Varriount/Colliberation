@@ -1,5 +1,8 @@
 #!/user/bin/python27
-
+# TODO
+# Expand Console Functions
+# Allow specifying port and 
+#
 import os
 import sys
 # Hack to allow us to import external libraries
@@ -14,6 +17,7 @@ from twisted.internet.endpoints import TCP4ServerEndpoint
 from colliberation.server.factory import CollabServerFactory
 from colliberation.packets import make_packet
 from twisted.manhole.telnet import ShellFactory
+
 
 prof = None
 

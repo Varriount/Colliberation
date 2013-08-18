@@ -16,7 +16,7 @@ class CollabServerFactory(ServerFactory):
         print('Starting collaboration server factory.')
 
         self.protocols = WeakValueDictionary()
-        self.available_documents = {}
+        self.available_docs = {}
 
         if protocol_hooks is not None:
             self.hooks = protocol_hooks
@@ -30,14 +30,15 @@ class CollabServerFactory(ServerFactory):
         print('Factory stopped')
 
     def broadcast(self, packet):
-        for proto in self.protocols.itervalues():
-            proto.transport.write(packet)
+        for protocol in self.protocols.itervalues():
+            protocol.transport.write(packet)
 
     def buildProtocol(self, addr):
         print('{0} is connecting...'.format(str(addr)))
 
         protocol = CollabServerProtocol(
             factory=self, address=addr, **self.hooks)
+        protocol.available_docs = self.available_docs
 
         self.protocols[addr] = protocol
         return protocol

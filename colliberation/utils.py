@@ -58,11 +58,3 @@ def pipeline_funcs(functions, data, can_stop=True, can_cancel=True):
         return piped_data
 
 null = str(object())
-
-
-def multiget(dictionary, *args, **kwargs):
-    for key in args:
-        result = dictionary.get(key, null)
-        if result is not null:
-            return result
-    return kwargs['default']

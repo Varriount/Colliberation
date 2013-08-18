@@ -10,6 +10,7 @@ from colliberation.utils import pipeline_funcs
 
 from diff_match_patch import diff_match_patch as DMP
 from copy import deepcopy
+import logging
 
 from warnings import warn
 
@@ -18,8 +19,13 @@ fragile_dmp = DMP()
 fragile_dmp.Match_Threshold = 0.0
 fragile_dmp.Match_Distance = 0.0
 fragile_dmp.Patch_DeleteThreshold = 0.0
+
 WAITING_FOR_AUTH = 1
 AUTHORIZED = 2
+
+# Logging strings
+DOC_NOT_AVAILABLE = 'Document with ID {0} is not available.'
+DOC_NOT_OPEN = 'Document with ID {0} is not open.'
 
 
 class BaseCollaborationProtocol(Protocol, TimeoutMixin):
@@ -43,6 +49,7 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
             - Setting the packet handlers
 
         """
+        self.logger = logging.getLogger(type(self).__name__)
         self.setTimeout(kwargs.get('timeout', self.timeout_rate))
         self.factory = kwargs.get('factory', None)
         self.address = kwargs.get('address', None)
@@ -62,11 +69,12 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
             12: self.document_saved,
             13: self.document_added,
             14: self.document_deleted,
-            15: self.document_renamed,
+            15: self.name_modified,
 
             # Document content actions
             20: self.text_modified,
             21: self.metadata_modified,
+            22: self.version_modified,
         }
 
     def dataReceived(self, data):
@@ -91,49 +99,52 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
         self.connected = False
 
     def timeoutConnection(self):
-        pass
+        self.connected = False
 
     # Misc. event handlers
-    def handshake_recieved(self, name):
-        pass
+    def handshake_recieved(self, data):
+        raise NotImplementedError
 
-    def ping_recieved(self, timestamp):
-        pass
+    def ping_recieved(self, data):
+        raise NotImplementedError
 
-    def message_recieved(self, message):
-        pass
+    def message_recieved(self, data):
+        raise NotImplementedError
 
-    def error_recieved(self, error_type, message):
-        pass
+    def error_recieved(self, data):
+        raise NotImplementedError
 
     # Document event handlers
-    def document_opened(self, document_id, version):
-        pass
+    def document_opened(self, data):
+        raise NotImplementedError
 
-    def document_closed(self, document_id, version):
-        pass
+    def document_closed(self, data):
+        raise NotImplementedError
 
-    def document_saved(self, document_id, version):
-        pass
+    def document_saved(self, data):
+        raise NotImplementedError
 
-    def document_added(self, document_id, version, document_name):
-        pass
+    def document_added(self, data):
+        raise NotImplementedError
 
-    def document_deleted(self, document_id, version):
-        pass
+    def document_deleted(self, data):
+        raise NotImplementedError
 
-    def document_renamed(self, document_id, new_name):
-        pass
+    def name_modified(self, data):
+        raise NotImplementedError
 
     # Document content event handlers
-    def text_modified(self, document_id, version, modifications):
-        pass
+    def text_modified(self, data):
+        raise NotImplementedError
 
-    def metadata_modified(self, document_id, version, type, key, value):
-        pass
+    def metadata_modified(self, data):
+        raise NotImplementedError
 
+    def version_modified(self, data):
+        raise NotImplementedError
 
 # Generic protocol implementation
+
 
 class CollaborationProtocol(BaseCollaborationProtocol):
 
@@ -152,7 +163,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     password = ''
 
     def __init__(self, **kwargs):
-        BaseCollaborationProtocol.__init__(self)
+        BaseCollaborationProtocol.__init__(self, **kwargs)
         # Document datas
         self.open_docs = kwargs.get('open_docs', {})  # id : Doc
         self.shadow_docs = kwargs.get('shadow_docs', {})
@@ -205,6 +216,9 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         self.transport.write(packet)
 
     # Misc. event handlers
+    def ping_recieved(self, data):
+        pass
+
     def handshake_recieved(self, data):
         """
         If we are waiting, set the username.
@@ -225,7 +239,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         message = data.message
         message = pipeline_funcs(hooks, message)
         if message is not None:
-            print(message)
+            self.logger.info(message)
             return True
         return False
 
@@ -239,7 +253,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         message = data.message
         message = pipeline_funcs(hooks, message)
         if message is not None:
-            warn(message)
+            self.logger.warning(message)
             return True
         return False
 
@@ -260,15 +274,14 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             self.open_docs[data.document_id] = document
             self.shadow_docs[data.document_id] = deepcopy(document)
             d = document.open()
-            d.addCallback(self.callback)
+            d.addCallback(self.doc_callback)
             return True
         return False
 
-    def callback(self, doc):
+    def doc_callback(self, document):
         p = make_packet('document_closed',
-                        document_id=doc.id,
-                        version=doc.version)
-        self.document_closed(p)
+                        document_id=document.id,
+                        version=document.version)
         self.transport.write(p)
 
     def document_closed(self, data, func_hooks=None):
@@ -278,10 +291,16 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         """
         if func_hooks is None:
             hooks = self.doc_close_hooks
+        if data.document_id not in self.open_docs:
+            self.logger.warning(
+                DOC_NOT_OPEN.format(data.document_id)
+            )
+            return
 
         document = self.open_docs.pop(data.document_id)
         self.shadow_docs.pop(data.document_id)
         document = pipeline_funcs(hooks, document)
+        document.close()
 
         if document is not None:
             self.available_docs[data.document_id] = document
@@ -295,6 +314,11 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         """
         if func_hooks is None:
             hooks = self.doc_save_hooks
+        if data.document_id not in self.open_docs:
+            self.logger.warning(
+                DOC_NOT_OPEN.format(data.document_id)
+            )
+            return
 
         document = self.open_docs[data.document_id]
         document = pipeline_funcs(hooks, document)
@@ -334,8 +358,9 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if data.document_id in self.available_docs:
             del(self.available_docs[data.document_id])
         else:
-            warn('Deleted Document ID {} not in available documents'
-                 .format(data.document_id))
+            self.logger.warn(
+                DOC_NOT_AVAILABLE.format(data.document_id)
+            )
 
     # Document content event handlers.
     # These handlers send data back to sender based on whether they
@@ -347,15 +372,14 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         Find the document in open_docs or available_docs, and modify it's
         name variable, raising a warning if the document cannot be found.
         """
-        document = None
-        if data.document_id in self.open_docs:
-            document = self.open_docs[data.document_id]
-        elif data.document_id in self.available_docs:
-            document = self.available_docs[data.document_id]
-        else:
-            warn('Document {} cannot be found'.format(data.document_id))
-        if document:
-            document.name = data.new_name
+        if data.document_id not in self.available_docs:
+            self.logger.warning(
+                DOC_NOT_AVAILABLE.format(data.document_id)
+            )
+            return
+
+        document = self.available_docs[data.document_id]
+        document.name = data.new_name
 
     def text_modified(self, data):
         """ Modify the text in the document.
@@ -367,6 +391,11 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         documents content.
         This event handler is unique in that it sends data back to the caller.
         """
+        if data.document_id not in self.open_docs:
+            self.logger.warning(
+                DOC_NOT_OPEN.format(data.document_id)
+            )
+
         d_patches = flexible_dmp.patch_fromText(data.modifications)
         s_patches = fragile_dmp.patch_fromText(data.modifications)
 
@@ -377,8 +406,11 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         document.patch(d_patches, dmp=flexible_dmp)
         shadow.patch(s_patches, dmp=fragile_dmp)
 
-        mods = flexible_dmp.patch_toText(shadow.make_patches(document.content))
+        mods = flexible_dmp.patch_toText(
+            shadow.make_patches(document.content, fragile_dmp)
+        )
         shadow.update(document)
+
         reactor.callLater(
             self.send_delay,
             self.transport.write,
@@ -394,6 +426,12 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         """
         Modify the metadata in the specified document.
         """
+        if data.document_id not in self.open_docs:
+            self.logger.warning(
+                DOC_NOT_OPEN.format(data.document_id)
+            )
+            return
+
         if func_hooks is None:
             hooks = self.metadata_mod_hooks
 
@@ -407,13 +445,10 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
     def version_modified(self, data):
         if data.document_id not in self.open_docs:
-            self._warn_doc_not_open(data.document_id)
-        else:
-            document = self.open_docs[data.document_id]
-            document.version = data.version
+            self.logger.warning(
+                DOC_NOT_OPEN.format(data.document_id)
+            )
+            return
 
-    def _warn_doc_not_open(self, document_id):
-        warn('Document {} not found in open_docs'.format(document_id))
-
-    def _warn_doc_not_available(self, document_id):
-        warn('Document {} not found in available_docs'.format(document_id))
+        document = self.open_docs[data.document_id]
+        document.version = data.version

@@ -29,7 +29,15 @@ class CollabServerProtocol(CollaborationProtocol):
                              document_id=data.document_id,
                              version=data.version)
 
+        mod_packet = make_packet(
+            'text_modified',
+            document_id=data.document_id,
+            version=data.version,
+            modifications=''
+        )
+
         self.transport.write(packet)
+        self.transport.write(mod_packet)
 
     def document_closed(self, data):
         """ Close a document.

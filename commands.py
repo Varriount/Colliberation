@@ -1,5 +1,14 @@
+# TODO
+# Add documentation
+# Clean up variable & function names
+# Sort imports
+# Finish command interface with core, factory, and protocols
+# Allow for multiple clients
+#
+
 from sublime_plugin import ApplicationCommand
 import sublime
+
 import sys
 import os
 
@@ -15,41 +24,64 @@ from sublime_utils import install_twisted
 install_twisted()
 
 # Now back to our regularly scheduled programming
-from core import SublimeClientFactory
+from colliberation.packets import make_packet
+from colliberation.sublime.factory import SublimeClientFactory
+
 from sublime_utils import MultiPrompt
-
-"""
-To recieve and send events from the editor to the client object,
-we pass hooks to the factor
-"""
-
-
-class ColliberationCore(object):
-
-    """
-    Core class for sublimetext collaboration components.
-    Additionally, the core sinks event hooks into the colliberation client
-    and factory, to allow children of this class to respond to events.
-    This allows semi-global state to be managed.
-    """
-    factory = SublimeClientFactory()
-    client = None
 
 # Commands
 
 
-class CollaborationCommand(ApplicationCommand, ColliberationCore):
+class PsuedoFactory(object):
+    factory = None
+    connected = False
+    client = None
+
+    @classmethod
+    def startedConnecting(self, connector):
+        self.connected = True
+
+    @classmethod
+    def clientConnectionFailed(self, connector, reason):
+        self.connected = False
+        # self.client = None
+
+    @classmethod
+    def clientConnectionLost(self, connector, reason):
+        self.connected = False
+        self.client = None
+
+
+class CollaborationCommand(ApplicationCommand, PsuedoFactory):
 
     """
     Base class for collaboration commands.
     Provides utility functions and such.
     """
+    factory = SublimeClientFactory(PsuedoFactory)
 
-    def choose_file(self, callback):
-        self.client.update_available_documents()
+    def choose_file(self, callback=None):
+        documents = self.client.available_docs
+        choices, conversions = [], []
+        if callback is None:
+            callback = self.null
+
+        for document in documents.itervalues():
+            choices.append(document.name)
+            conversions.append(document)
+
+        def conversion_callback(slot):
+            if slot is -1:
+                callback(None)
+            else:
+                callback(conversions[slot])
+
         sublime.active_window().show_quick_panel(
-            self.client.available_documents, callback
+            choices, conversion_callback
         )
+
+    def null(self, item):
+        pass
 
     def description(self):
         return self.__doc__().strip('    ').replace('\n', ' ')
@@ -59,7 +91,7 @@ class CollaborationCommand(ApplicationCommand, ColliberationCore):
 
     def is_connected(self):
         if self.client is not None:
-            return self.client.connected
+            return self.connected
         return False
 
 
@@ -94,19 +126,11 @@ class ConnectToServer(CollaborationCommand):
             )
         else:
             # Send a connection request to the factory
-            sublime.status_message('Connecting to collaboration server...')
-            deferred_client = self.factory.connect_to_server(address, port)
-            # Attach success and failure callbacks
-            deferred_client.addCallback(self.connect_success)
-            deferred_client.addErrback(self.connect_fail)
+            deferred = self.factory.connect_to_server(address, port)
+            deferred.addCallback(self.set_client)
 
-    def connect_success(self, protocol):
-        sublime.status_message("Connection Established.")
-        self.client = protocol
-
-    def connect_fail(self, error):
-        sublime.status_message("Connection failed ({0})".format(error))
-        self.client = None
+    def set_client(self, client):
+        PsuedoFactory.client = client
 
     def is_enabled(self):
         return not self.is_connected()
@@ -124,7 +148,7 @@ class DisconnectFromServer(CollaborationCommand):
         sublime.status_message('Disconnected from collaboration server.')
 
     def is_enabled(self):
-        return (self.is_connected())
+        return self.is_connected()
 
 
 class ListAvailableDocuments(CollaborationCommand):
@@ -149,12 +173,17 @@ class OpenDocument(CollaborationCommand):
     def run(self):
         self.choose_file(self.open_document)
 
-    def open_document(self, document_id):
-        if document_id < 0:
-            pass
-        else:
-            document = self.client.open_document(document_id)
-            sublime.status_message('Opening {0}'.format(document))
+    def open_document(self, document):
+        if document is None:
+            return
+
+        open_packet = make_packet(
+            'document_opened',
+            document_id=document.id,
+            version=document.version)
+        self.client.transport.write(open_packet)
+
+        sublime.status_message('Opening {0}'.format(document))
 
     def is_enabled(self):
         return self.is_connected()
@@ -170,14 +199,19 @@ class RenameDocument(CollaborationCommand):
     def run(self):
         self.choose_file(self.step_two)
 
-    def step_two(self, document_id):
-        self.document_id = document_id
-        sublime.active_window().show_input_panel(
-            'New name?', '', self.step_three, None, None
-        )
+    def step_two(self, document):
+        def step_three(input):
+            name_mod_packet = make_packet(
+                'name_modified',
+                document_id=document.id,
+                version=document.version,
+                new_name=input
+            )
+            self.client.transport.write(name_mod_packet)
 
-    def step_three(self, input):
-        self.client.rename_document(self.document_id, input)
+        sublime.active_window().show_input_panel(
+            'New name?', '', step_three, None, None
+        )
 
     def is_enabled(self):
         return self.is_connected()
@@ -195,7 +229,13 @@ class AddDocument(CollaborationCommand):
         )
 
     def add_document(self, document_name):
-        self.client.create_blank_document(document_name)
+        add_packet = make_packet(
+            'document_added',
+            document_id=2,
+            version=0,
+            document_name=document_name
+        )
+        self.client.transport.write(add_packet)
 
     def is_enabled(self):
         return self.is_connected()
@@ -210,8 +250,13 @@ class DeleteDocument(CollaborationCommand):
     def run(self):
         self.choose_file(self.delete_document)
 
-    def delete_document(self, document_id):
-        self.client.delete_document(document_id)
+    def delete_document(self, document):
+        delete_packet = make_packet(
+            'document_deleted',
+            document_id=document.id,
+            version=document.version
+        )
+        self.client.transport.write(delete_packet)
 
     def is_enabled(self):
         return self.is_connected()

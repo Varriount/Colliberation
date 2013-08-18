@@ -6,8 +6,12 @@ from diff_match_patch import diff_match_patch as DMP
 
 from copy import deepcopy
 from twisted.internet.defer import Deferred
+import logging
 
-dmp = DMP()
+ddmp = DMP()
+
+DOC_TEXT_CHANGE_LOG = 'Changing document text at {0}:{1} to "{2}"'
+DOC_TEXT_DELETED_LOG = 'Deleting document text at {0}:{1}'
 
 
 class Document(object):
@@ -22,6 +26,8 @@ class Document(object):
     state_deferral = None
 
     def __init__(self, **kwargs):
+        self.logger = logging.getLogger(type(self).__name__)
+
         self.id = kwargs.get('id', 0)
         self.name = kwargs.get('name', '')
         self.content = kwargs.get('content', '')
@@ -63,17 +69,24 @@ class Document(object):
         )
 
     def change_text(self, start, text, end):
+        self.logger.debug(
+            DOC_TEXT_CHANGE_LOG.format(start, end, text)
+        )
+
         self.content = (self.content[:start] +
                         text +
                         self.content[end:]
                         )
 
     def delete_text(self, start, end):
+        self.logger.debug(
+            DOC_TEXT_DELETED_LOG.format(start, end)
+        )
         self.content = (self.content[:start] +
                         self.content[end:]
                         )
 
-    def diff(self, text, dmp=dmp):
+    def diff(self, text, dmp):
         """
         Generates list of diffs from the documents content against
         the given text.
@@ -81,7 +94,7 @@ class Document(object):
         diffs = dmp.main_diff(self.content, text)
         return diffs
 
-    def make_patches(self, text, dmp=dmp):
+    def make_patches(self, text, dmp):
         """ Makes a series of patches against the given text.
 
         Diffs the given text with the document's content, and transforms
@@ -91,10 +104,12 @@ class Document(object):
         data = dmp.patch_make(self.content, data)
         return data
 
-    def patch(self, patches, dmp=dmp):
+    def patch(self, patches, dmp):
+        print(patches)
         new_content, results = dmp.patch_apply(patches, self)
         if len(results) != 0:
-            print("Patch results: {}".format(results))
+            print(new_content)
+            print("Patch results: " + str(results))
         return results
 
     def update(self, document):
@@ -111,4 +126,5 @@ class Document(object):
         return self.state_deferral
 
     def close(self):
-        self.state_deferral.callback(self)
+        if self.state_deferral is not None:
+            self.state_deferral.callback(self)

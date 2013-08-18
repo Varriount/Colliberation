@@ -1,7 +1,6 @@
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
-
 from colliberation.client.protocol import CollabClientProtocol
 
 
@@ -15,34 +14,22 @@ class CollabClientFactory(ReconnectingClientFactory):
     client_class = CollabClientProtocol
 
     def __init__(self):
-        self.protocols = dict()
-        self.temp = {}
+        self.protocols = {}
+        self.deferreds = {}
 
     def connect_to_server(self, address, port):
         """ Connect to a server. """
+        reactor.connectTCP(address, port, self)
+        deferred = Deferred()
+        self.deferreds[address + str(port)] = deferred
+        return deferred
 
-        connector = reactor.connectTCP(address, port, self)
-        destination = connector.getDestination()
-        defer = Deferred()
-        self.temp[destination.host + str(destination.port)] = defer
-        return defer
-
-    def startedConnecting(self, connector):
-        print('Started Connecting at {0}...'.format(str(connector)))
-
-    def startFactory(self):
-        print('Factory started')
-
-    def stopFactory(self):
-        print('Factory stopped')
-
-    def buildProtocol(self, address):
-        print('Connecting to {0}...'.format(str(address)))
-
+    def buildProtocol(self, destination):
         protocol = self.client_class()
         protocol.factory = self
-        protocol.address = address
-        signature = address.host + str(address.port)
+        key = destination.host + str(destination.port)
+        self.protocols[key] = protocol
 
-        self.protocols[signature] = protocol
+        deferred = self.deferreds[key]
+        deferred.callback(protocol)
         return protocol
