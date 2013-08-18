@@ -16,11 +16,11 @@ class SublimeDocument(Document, EventListener):
 
     def __init__(self, **kwargs):
         print("Initialized document {0}".format(self))
-        self._cache = ''
-        self.view = None
-        Document.__init__(self, **kwargs)
         self.buffer_id = None
         self.view = None
+        self._cache = ''
+        self._name = ''
+        Document.__init__(self, **kwargs)
 
     # EventListener methods
     def on_close(self, view):
@@ -66,6 +66,18 @@ class SublimeDocument(Document, EventListener):
         else:
             print("{0}: Setting cache content".format(self))
             self._cache = value
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+        if self.buffer_id is not None:
+            views = views_from_buffer
+            for window, view in views:
+                view.set_name(value)
 
     def change_text(self, start, text, end):
         print("{0}: Changing text.".format(self))

@@ -1,33 +1,10 @@
 from logging import Handler, NOTSET
 import sublime
-from sublime_utils import views_from_buffer
+from sublime_utils import views_from_buffer, enable_listener, disable_listener
 from sublime_plugin import EventListener
 
 
-class SublimeViewHandler(Handler, EventListener):
-
-    def __init__(self, level=NOTSET, view_id=None):
-        if view_id is None:
-            view = sublime.active_window().new_view()
-            self.view = view
-            self.buffer_id = view.buffer_id()
-        else:
-            pass
-        Handler.__init__(level)
-
-    def emit(self, record):
-        """
-        Emit a record.
-
-        """
-        try:
-            msg = self.format(record)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
-            self.handleError(record)
-
-class ViewLogger(Handler, EventListener):
+class LogView(Handler, EventListener):
 
     """
     Emits log events to a sublime view, if one is open.
@@ -56,19 +33,23 @@ class ViewLogger(Handler, EventListener):
     # Document methods
 
     def emit(self, line):
+        print(line)
+        if self.view is None:
+            self.cache.append(line)
+            return
         view = self.view
         view_size = view.size
-        region = sublime.Region(start, view_size())
+        region = sublime.Region(view_size(), view_size())
 
         edit = self.view.start_edit()
-        self.view.insert(edit, region, text)
+        self.view.insert(edit, region, line)
         self.view.end_edit(edit)
 
-        # If the current viewport is located at the bottom of the file, 
+        # If the current viewport is located at the bottom of the file,
         # scroll down.
         scroll_down = self.view.visible_region.contains(self.view.size())
+        if scroll_down:
             self.view.show(self.view.size())
-
 
     def open(self):
         """
@@ -79,13 +60,15 @@ class ViewLogger(Handler, EventListener):
         if self.buffer_id is None:
             self_view = sublime.active_window().new_file()
             self_view.set_scratch(True)
-            #self_view.set_read_only(True)
-            self_view.set_name(self.name)
+            # self_view.set_read_only(True)
+            self_view.set_name("Colliberation Log")
 
             self.view = self_view
             self.buffer_id = self_view.buffer_id()
+        for line in self.cache:
+            self.emit(line)
 
-        return Document.open(self)
+        return
 
     def close(self):
         disable_listener(self)
@@ -97,5 +80,4 @@ class ViewLogger(Handler, EventListener):
 
         self.buffer_id = None
         self.view = None
-        return Document.close(self)
-
+        return

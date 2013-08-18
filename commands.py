@@ -28,7 +28,6 @@ from colliberation.packets import make_packet
 from colliberation.sublime.factory import SublimeClientFactory
 
 from sublime_utils import MultiPrompt
-
 # Commands
 
 
@@ -39,6 +38,7 @@ class PsuedoFactory(object):
 
     @classmethod
     def startedConnecting(self, connector):
+        print("Started")
         self.connected = True
 
     @classmethod
@@ -93,6 +93,19 @@ class CollaborationCommand(ApplicationCommand, PsuedoFactory):
         if self.client is not None:
             return self.connected
         return False
+
+
+class OpenLogView(CollaborationCommand):
+
+    """
+    Open the logging view for the colliberation plugin.
+    """
+
+    def run(self):
+        self.handler.open()
+
+    def is_enabled(self):
+        return True
 
 
 class ConnectToServer(CollaborationCommand):
@@ -183,7 +196,9 @@ class OpenDocument(CollaborationCommand):
             version=document.version)
         self.client.transport.write(open_packet)
 
-        sublime.status_message('Opening {0}'.format(document))
+        sublime.status_message(
+            'Opening {0}'.format(document)
+        )
 
     def is_enabled(self):
         return self.is_connected()
@@ -194,7 +209,6 @@ class RenameDocument(CollaborationCommand):
     """
     Rename a document available on the collaboration server.
     """
-    document_id = None
 
     def run(self):
         self.choose_file(self.step_two)
@@ -210,7 +224,11 @@ class RenameDocument(CollaborationCommand):
             self.client.transport.write(name_mod_packet)
 
         sublime.active_window().show_input_panel(
-            'New name?', '', step_three, None, None
+            'New name?',  # Prompt
+            '',  # Default value
+            step_three,  # Callback
+            None,
+            None
         )
 
     def is_enabled(self):
@@ -225,7 +243,11 @@ class AddDocument(CollaborationCommand):
 
     def run(self):
         sublime.active_window().show_input_panel(
-            "New document name?", "", self.add_document, None, None
+            "New document name?",  # Prompt
+            "",  # Default value
+            self.add_document,  # Callback
+            None,
+            None
         )
 
     def add_document(self, document_name):

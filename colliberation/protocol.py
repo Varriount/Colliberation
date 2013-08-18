@@ -10,7 +10,6 @@ from colliberation.utils import pipeline_funcs
 
 from diff_match_patch import diff_match_patch as DMP
 from copy import deepcopy
-import logging
 
 from warnings import warn
 
@@ -49,7 +48,6 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
             - Setting the packet handlers
 
         """
-        self.logger = logging.getLogger(type(self).__name__)
         self.setTimeout(kwargs.get('timeout', self.timeout_rate))
         self.factory = kwargs.get('factory', None)
         self.address = kwargs.get('address', None)
@@ -239,7 +237,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         message = data.message
         message = pipeline_funcs(hooks, message)
         if message is not None:
-            self.logger.info(message)
+            print(message)
             return True
         return False
 
@@ -253,7 +251,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         message = data.message
         message = pipeline_funcs(hooks, message)
         if message is not None:
-            self.logger.warning(message)
+            print(message)
             return True
         return False
 
@@ -292,7 +290,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if func_hooks is None:
             hooks = self.doc_close_hooks
         if data.document_id not in self.open_docs:
-            self.logger.warning(
+            print(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return
@@ -315,7 +313,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if func_hooks is None:
             hooks = self.doc_save_hooks
         if data.document_id not in self.open_docs:
-            self.logger.warning(
+            print(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return
@@ -358,7 +356,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if data.document_id in self.available_docs:
             del(self.available_docs[data.document_id])
         else:
-            self.logger.warn(
+            print(
                 DOC_NOT_AVAILABLE.format(data.document_id)
             )
 
@@ -373,7 +371,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         name variable, raising a warning if the document cannot be found.
         """
         if data.document_id not in self.available_docs:
-            self.logger.warning(
+            print(
                 DOC_NOT_AVAILABLE.format(data.document_id)
             )
             return
@@ -392,9 +390,10 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         This event handler is unique in that it sends data back to the caller.
         """
         if data.document_id not in self.open_docs:
-            self.logger.warning(
+            print(
                 DOC_NOT_OPEN.format(data.document_id)
             )
+            return
 
         d_patches = flexible_dmp.patch_fromText(data.modifications)
         s_patches = fragile_dmp.patch_fromText(data.modifications)
@@ -427,7 +426,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         Modify the metadata in the specified document.
         """
         if data.document_id not in self.open_docs:
-            self.logger.warning(
+            print(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return
@@ -445,7 +444,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
     def version_modified(self, data):
         if data.document_id not in self.open_docs:
-            self.logger.warning(
+            print(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return

@@ -94,6 +94,13 @@ class CollabServerProtocol(CollaborationProtocol):
         Send a name_modified packet.
         """
         CollaborationProtocol.name_modified(self, data)
+        packet = make_packet(
+            'name_modified',
+            document_id=data.document_id,
+            version=data.version,
+            new_name=data.new_name
+        )
+        self.transport.write(packet)
 
     def content_modified(self, data):
         """ Modify the content of a document.
