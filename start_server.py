@@ -21,56 +21,7 @@ from twisted.manhole.telnet import ShellFactory
 
 prof = None
 
-message_packet = make_packet('message',
-                             message='I am a message')
-
-error_packet = make_packet('error',
-                           error_type=5,
-                           message='I am an error')
-
-open_packet = make_packet('document_opened',
-                          document_id=60,
-                          version=80)
-
-closed_packet = make_packet('document_closed',
-                            document_id=60,
-                            version=80)
-
-add_packet = make_packet('document_added',
-                         document_id=60,
-                         version=80,
-                         document_name='test.py')
-
-delete_packet = make_packet('document_deleted',
-                            document_id=60,
-                            version=80)
-
-name_mod_packet = make_packet('name_modified',
-                              document_id=60,
-                              version=80,
-                              new_name='table.py')
-
-text_mod_packet = make_packet('text_modified',
-                              document_id=60,
-                              version=80,
-                              modifications='@@ -0,0 +1,7 @@\n+abcdefg\n')
-
-metadata_mod_packet = make_packet('metadata_modified',
-                                  document_id=60,
-                                  version=80,
-                                  type='int',
-                                  key='owner',
-                                  value='tester')
-
-packets = {'metadata_mod_packet': metadata_mod_packet,
-           'text_mod_packet': text_mod_packet,
-           'name_mod_packet': name_mod_packet,
-           'delete_packet': delete_packet,
-           'open_packet': open_packet,
-           'closed_packet': closed_packet,
-           'add_packet': add_packet,
-           'error_packet': error_packet,
-           'message_packet': message_packet
+packets = {
            }
 
 

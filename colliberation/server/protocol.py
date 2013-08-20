@@ -17,6 +17,17 @@ class CollabServerProtocol(CollaborationProtocol):
     def __init__(self, **kwargs):
         CollaborationProtocol.__init__(self, **kwargs)
 
+    def handshake_recieved(self, data):
+        CollaborationProtocol.handshake_recieved(self, data)
+        for doc_id, document in self.available_docs.iteritems():
+            packet = make_packet(
+                'document_added',
+                document_id=doc_id,
+                version=document.version,
+                document_name=document.name
+            )
+            self.transport.write(packet)
+
     # Document event handlers
     def document_opened(self, data):
         """ Open a document.
@@ -33,7 +44,8 @@ class CollabServerProtocol(CollaborationProtocol):
             'text_modified',
             document_id=data.document_id,
             version=data.version,
-            modifications=''
+            modifications='',
+            hash=str(hash(self.shadow_docs[data.document_id].content))
         )
 
         self.transport.write(packet)
@@ -61,7 +73,7 @@ class CollabServerProtocol(CollaborationProtocol):
                              document_id=data.document_id,
                              version=data.version)
 
-        self.transport.write(packet)
+        self.factory.broadcast(packet)
 
     def document_added(self, data):
         """ Add a document.
@@ -74,7 +86,7 @@ class CollabServerProtocol(CollaborationProtocol):
                              version=data.version,
                              document_name=data.document_name)
 
-        self.transport.write(packet)
+        self.factory.broadcast(packet)
 
     def document_deleted(self, data):
         """ Delete a document.
@@ -100,7 +112,7 @@ class CollabServerProtocol(CollaborationProtocol):
             version=data.version,
             new_name=data.new_name
         )
-        self.transport.write(packet)
+        self.factory.broadcast(packet)
 
     def content_modified(self, data):
         """ Modify the content of a document.
@@ -121,7 +133,7 @@ class CollabServerProtocol(CollaborationProtocol):
                              key=data.key,
                              value=data.value)
 
-        self.transport.write(packet)
+        self.factory.broadcast(packet)
 
     def version_modified(self, data):
         """ Modify the version of a document.

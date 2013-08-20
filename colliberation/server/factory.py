@@ -15,7 +15,7 @@ class CollabServerFactory(ServerFactory):
     def __init__(self, protocol_hooks=None):
         print('Starting collaboration server factory.')
 
-        self.protocols = WeakValueDictionary()
+        self.protocols = {}
         self.available_docs = {}
 
         if protocol_hooks is not None:

@@ -8,11 +8,15 @@ class SublimeCollabProtocol(CollaborationProtocol):
     doc_class = SublimeDocument
 
     def connectionMade(self):
-        current_view().set_status("Collaboration", 'Connection made')
+        view = current_view()
+        if view is not None:
+            view.set_status("Collaboration", 'Connection made')
         CollaborationProtocol.connectionMade(self)
 
     def connectionLost(self, reason):
-        current_view().set_status(
-            "Collaboration",
-            "Connection lost. ({0})".format(reason)
-        )
+        view = current_view()
+        if view is not None:
+            view.set_status(
+                "Collaboration",
+                "Connection lost. ({0})".format(reason)
+            )

@@ -4,6 +4,22 @@
 		"selected_items":
 		[
 			[
+				"docume",
+				"document_id"
+			],
+			[
+				"sha",
+				"shadow_docs  (variable)"
+			],
+			[
+				"Coll",
+				"CollaborationProtocol"
+			],
+			[
+				"bit",
+				"bit_path"
+			],
+			[
 				"se",
 				"set_name"
 			],
@@ -84,10 +100,6 @@
 				"classmethod"
 			],
 			[
-				"Coll",
-				"Collaboration"
-			],
-			[
 				"set",
 				"set_status"
 			],
@@ -106,10 +118,6 @@
 			[
 				"activ",
 				"active_window"
-			],
-			[
-				"docume",
-				"document_closed"
 			],
 			[
 				"open",
@@ -506,24 +514,61 @@
 			[
 				"dc",
 				"document_id"
-			],
-			[
-				"auth",
-				"auth_state"
-			],
-			[
-				"true",
-				"True"
 			]
 		]
 	},
 	"buffers":
 	[
 		{
-			"file": "colliberation/sublime/document.py",
+			"file": "colliberation/sublime/protocol.py",
 			"settings":
 			{
-				"buffer_size": 4297,
+				"buffer_size": 677,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "colliberation/protocol.py",
+			"settings":
+			{
+				"buffer_size": 14836,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "colliberation/server/protocol.py",
+			"settings":
+			{
+				"buffer_size": 4684,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "import sublime\n\nfrom colliberation.document import Document\n\nfrom sublime_utils import enable_listener, disable_listener, views_from_buffer\n\nfrom sublime_plugin import EventListener\n\nDEBUG = False\n\n\ndef log(text):\n    if DEBUG:\n        print(text)\n\n\nclass SublimeDocument(Document, EventListener):\n\n    \"\"\"\n    View connecting to sublime text document.\n    TODO - Optimize finding/tracking shared views\n    \"\"\"\n\n    def __init__(self, **kwargs):\n        log(\"Initialized document {0}\".format(self))\n        self.buffer_id = None\n        self.view = None\n        self._cache = ''\n        self._name = ''\n        Document.__init__(self, **kwargs)\n\n    # EventListener methods\n    def on_close(self, view):\n        self_buffer_id = self.buffer_id\n        if view.buffer_id() == self_buffer_id:\n            log(\"{0}: View closed. Switching...\".format(self))\n            available_views = views_from_buffer(self_buffer_id)\n            if available_views:\n                self.view = available_views[0]\n            elif self.state_deferral is not None:\n                log(\"{0}: Switching failed.\".format(self))\n                log(\"{0}: Nulling state_deferral, calling\".format(self))\n                deferral = self.state_deferral\n                self.state_deferral = None\n                deferral.callback(self)\n            else:\n                raise Exception(\"Ran out of views when not opened\")\n\n    # Document methods\n\n    @property\n    def content(self):\n        log(\"{0}: Content retrieved\".format(self))\n        if self.view is not None:\n            log(\"{0}: Using view's content\".format(self))\n            region = sublime.Region(0, self.view.size())\n            return self.view.substr(region)\n        else:\n            log(\"{0}: Using cached content.\".format(self))\n            return self._cache\n\n    @content.setter\n    def content(self, value):\n        log(\"{0}: Setting document content\".format(self))\n        if self.view is not None:\n            log(\"{0}: Directly setting view content\".format(self))\n            self_view = self.view\n            region = sublime.Region(0, self.view.size())\n\n            edit = self_view.begin_edit()\n            self.view.replace(edit, region, value)\n            self_view.end_edit(edit)\n        else:\n            log(\"{0}: Setting cache content\".format(self))\n            self._cache = value\n\n    @property\n    def name(self):\n        return self._name\n\n    @name.setter\n    def name(self, value):\n        self._name = value\n        if self.buffer_id is not None:\n            views = views_from_buffer\n            for window, view in views:\n                view.set_name(value)\n\n    def change_text(self, start, text, end):\n        log(\"{0}: Changing text.\".format(self))\n        region = sublime.Region(start, end)\n        edit = self.view.begin_edit()\n        self.view.replace(edit, region, text)\n        self.view.end_edit(edit)\n\n    def delete_text(self, start, end):\n        log(\"{0}: Deleting text.\".format(self))\n        region = sublime.Region(start, end)\n        edit = self.view.begin_edit()\n        self.view.erase(edit, region)\n        self.view.end_edit(edit)\n\n    def open(self):\n        \"\"\"\n        Enable listening to events,\n        Create view and buffer_id\n        \"\"\"\n        log(\"{0}: Opened\".format(self))\n        enable_listener(self)\n        if self.buffer_id is None:\n            log(\"{0}: Empty buffer ID. Creating view.\".format(self))\n            self_view = sublime.active_window().new_file()\n            \n            self_view.set_scratch(True)\n            self_view.set_name(self.name)\n\n            self.view = self_view\n            self.buffer_id = self_view.buffer_id()\n        self.content = self._cache\n        return Document.open(self)\n\n    def close(self):\n        log(\"{0}: Closing\".format(self))\n        disable_listener(self)\n        open_views = views_from_buffer(self.buffer_id)\n        args = {'group': None, 'index': None}\n        for window, view in open_views:\n            args['group'], args['index'] = window.get_view_index(view)\n            window.run_command(\"close_by_index\", args)\n\n        self._cache = self.content\n        self.buffer_id = None\n        self.view = None\n        self.state_deferral = None\n        return Document.close(self)\n",
+			"file": "colliberation/sublime/document.py",
+			"file_size": 4367,
+			"file_write_time": 130213507585844967,
+			"settings":
+			{
+				"buffer_size": 4246,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "Testing Can you see me?\nHere - abcdefghijklmnopq\nThere  abc-defhijkgmlmnopqrstuvwxyz",
+			"settings":
+			{
+				"buffer_size": 84,
+				"line_ending": "Windows",
+				"name": "text",
+				"scratch": true
+			}
+		},
+		{
+			"file": "colliberation/packets.py",
+			"settings":
+			{
+				"buffer_size": 6189,
 				"line_ending": "Windows"
 			}
 		}
@@ -719,7 +764,7 @@
 	},
 	"console":
 	{
-		"height": 203.0
+		"height": 251.0
 	},
 	"distraction_free":
 	{
@@ -732,23 +777,29 @@
 	},
 	"file_history":
 	[
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/server/protocol.py",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/protocol.py",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/packets.py",
+		"/C/Users/Clay/s",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/document.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/packets.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/serializer.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/factory.py",
+		"/C/Users/Clay/Projects/Colliberation/Colliberation.sublime-commands",
+		"/C/Users/Clay/Projects/Colliberation/commands.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/protocol.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/document.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/server/factory.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/server/protocol.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/interfaces.py",
+		"/C/Users/Clay/Projects/Colliberation/Main.sublime-menu",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/document.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/logview.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/protocol.py",
-		"/C/Users/Clay/Projects/Colliberation/commands.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/server/protocol.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/packets.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/protocol.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/client/protocol.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/commands.py",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/protocol.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/Colliberation.sublime-commands",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/core.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/document.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/factory.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/document.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/interfaces.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/serializer.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/utils.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/sublime/factory.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/sublime/document.py",
@@ -762,7 +813,6 @@
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/coliberation.sublime-workspace",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/docs/_build/html/_static/js/jquery-1.9.1.min.js",
 		"/C/Users/Clay/Projects/Colliberation/start_server.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/server/factory.py",
 		"/C/Users/Clay/Projects/Colliberation/client.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/test.pytest.d",
 		"/C/Users/Clay/Projects/Colliberation/libs/docstring.py",
@@ -854,12 +904,7 @@
 		"/C/Users/Clay/Projects/Colliberation/libs/infinote/document.py",
 		"/C/Users/Clay/Projects/Colliberation/optransform.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/operations.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/tests/test_document_manager.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/tests/test_operation.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/tests/test_documentation.py",
-		"/C/Users/Clay/Projects/Colliberation/run_tests.bat",
-		"/C/Users/Clay/Projects/Colliberation/tests/serializer_tests.py",
-		"/C/Users/Clay/Projects/Colliberation/libs/sublime_utils/misc.py"
+		"/C/Users/Clay/Projects/Colliberation/colliberation/tests/test_document_manager.py"
 	],
 	"find":
 	{
@@ -887,6 +932,9 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"hash",
+			"text_modified",
+			"print",
 			"logging",
 			"log",
 			"self.logger",
@@ -1011,10 +1059,7 @@
 			"delete_text",
 			"insert_text",
 			"rename_document",
-			"delete_document",
-			"add_document",
-			"save_document",
-			"close_document"
+			"delete_document"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1022,6 +1067,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"log",
 			"print",
 			"",
 			"{0}:",
@@ -1107,23 +1153,23 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "colliberation/sublime/document.py",
+					"file": "colliberation/sublime/protocol.py",
 					"settings":
 					{
-						"buffer_size": 4297,
+						"buffer_size": 677,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								489,
-								489
+								677,
+								677
 							]
 						],
 						"settings":
@@ -1280,7 +1326,879 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 256.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "colliberation/protocol.py",
+					"settings":
+					{
+						"buffer_size": 14836,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1158,
+								1158
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close"
+							],
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"sublime_auto_complete": true,
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 756.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "colliberation/server/protocol.py",
+					"settings":
+					{
+						"buffer_size": 4684,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close"
+							],
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"sublime_auto_complete": true,
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 2492.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "colliberation/sublime/document.py",
+					"settings":
+					{
+						"buffer_size": 4246,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3484,
+								3484
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close"
+							],
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"sublime_auto_complete": true,
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 2436.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"settings":
+					{
+						"buffer_size": 84,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								84,
+								84
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close"
+							],
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"sublime_auto_complete": true,
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "colliberation/packets.py",
+					"settings":
+					{
+						"buffer_size": 6189,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								3086,
+								3086
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close"
+							],
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+								"PyWin32",
+								"jQuery",
+								"Rails"
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"sublime_auto_complete": true,
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1932.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

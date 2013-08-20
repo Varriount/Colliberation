@@ -10,14 +10,18 @@ from sublime_plugin import ApplicationCommand
 import sublime
 
 import sys
+import platform
 import os
 
 # Hack to allow us to import external libraries
 __file__ = os.path.normpath(os.path.abspath(__file__))
 __path__ = os.path.dirname(__file__)
 libs_path = os.path.join(__path__, 'libs')
+bit, other = platform.architecture()
+bit_path = os.path.join(libs_path, bit)
 if libs_path not in sys.path:
     sys.path.insert(0, libs_path)
+    sys.path.insert(0, bit_path)
 
 # Another hack, to incorporate twisteds reactor
 from sublime_utils import install_twisted

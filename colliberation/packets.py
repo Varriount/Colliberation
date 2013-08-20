@@ -80,7 +80,8 @@ name_modified = Struct('name_modified',
 #: Signals that text has been modified
 text_modified = Struct('text_modified',
                        Embed(document_action),
-                       PascalString('modifications')
+                       PascalString('modifications'),
+                       PascalString('hash')
                        )
 
 #: Signals that document metadata has changed.

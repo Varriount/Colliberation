@@ -36,7 +36,7 @@
             {
                 "caption": "Open Shared Document",
                 "command": "open_document"
-            },
+            }
         ]
     }
 ]

@@ -12,22 +12,30 @@ class SublimeClientFactory(CollabClientFactory):
         self.hook = hook
 
     def startedConnecting(self, connector):
-        current_view().set_status(
-            'Collaboration',
-            'Started Connecting at {0}...'.format(connector))
+        view = current_view()
+        if view is not None:
+            view.set_status(
+                'Collaboration',
+                'Started Connecting at {0}...'.format(connector)
+            )
         self.hook.startedConnecting(connector)
 
     def clientConnectionFailed(self, connector, reason):
-        current_view().set_status(
-            'Collaboration',
-            'Connection failed at {0} - ({1})'.format(connector, reason)
-        )
+        view = current_view()
+        if view is not None:
+            view.set_status(
+                'Collaboration',
+                'Connection failed at {0} - ({1})'.format(connector, reason)
+            )
         self.hook.clientConnectionFailed(connector, reason)
 
     def clientConnectionLost(self, connector, reason):
-        current_view().set_status(
-            'Collaboration',
-            'Connection lost at {0} - ({1})'.format(connector, reason))
+        view = current_view()
+        if view is not None:
+            view.set_status(
+                'Collaboration',
+                'Connection lost at {0} - ({1})'.format(connector, reason)
+            )
 
         self.hook.clientConnectionLost(connector, reason)
 

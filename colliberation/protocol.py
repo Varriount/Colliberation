@@ -26,6 +26,13 @@ AUTHORIZED = 2
 DOC_NOT_AVAILABLE = 'Document with ID {0} is not available.'
 DOC_NOT_OPEN = 'Document with ID {0} is not open.'
 
+DEBUG = True
+
+
+def log(text):
+    if DEBUG:
+        print(text)
+
 
 class BaseCollaborationProtocol(Protocol, TimeoutMixin):
 
@@ -36,7 +43,7 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
     event handlers and hooks.
     """
     timeout_rate = 60
-    send_delay = 1
+    send_delay = .25
     connected = False
 
     def __init__(self, **kwargs):
@@ -87,8 +94,8 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
             if header in self.packet_handlers:
                 self.packet_handlers[header](payload)
             else:
-                print("Couldn't handle parseable packet %d!" % header)
-                print(payload)
+                log("Couldn't handle parseable packet %d!" % header)
+                log(payload)
 
     def connectionMade(self):
         self.connected = True
@@ -154,6 +161,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     """
     # Template classes
     doc_class = Document
+    shadow_class = Document
     serializer_class = DiskSerializer
 
     # Default settings
@@ -237,7 +245,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         message = data.message
         message = pipeline_funcs(hooks, message)
         if message is not None:
-            print(message)
+            log(message)
             return True
         return False
 
@@ -251,7 +259,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         message = data.message
         message = pipeline_funcs(hooks, message)
         if message is not None:
-            print(message)
+            log(message)
             return True
         return False
 
@@ -260,18 +268,21 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         """ Open a document.
 
         We retrieve the document object from available_docs to
-        open_documents, and create a shadow copy.
+        open_documents, and create a shadow copy if one doesn't exist.
         """
         if func_hooks is None:
             hooks = self.doc_open_hooks
 
         document = self.available_docs[data.document_id]
+        shadow = self.shadow_class()
+        shadow.update(document)
         document = pipeline_funcs(hooks, document)
 
         if document is not None:
             self.open_docs[data.document_id] = document
-            self.shadow_docs[data.document_id] = deepcopy(document)
+            self.shadow_docs[data.document_id] = shadow
             d = document.open()
+            # TODO - Does shadow.open and close need to be called?
             d.addCallback(self.doc_callback)
             return True
         return False
@@ -290,7 +301,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if func_hooks is None:
             hooks = self.doc_close_hooks
         if data.document_id not in self.open_docs:
-            print(
+            log(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return
@@ -313,7 +324,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if func_hooks is None:
             hooks = self.doc_save_hooks
         if data.document_id not in self.open_docs:
-            print(
+            log(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return
@@ -335,7 +346,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             hooks = self.doc_add_hooks
 
         if data.document_id in self.available_docs:
-            warn('Document {} already exists'.format(data.document_id))
+            warn('Document {0} already exists'.format(data.document_id))
         else:
             document = self.doc_class(id=data.document_id,
                                       version=data.version,
@@ -356,7 +367,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if data.document_id in self.available_docs:
             del(self.available_docs[data.document_id])
         else:
-            print(
+            log(
                 DOC_NOT_AVAILABLE.format(data.document_id)
             )
 
@@ -371,7 +382,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         name variable, raising a warning if the document cannot be found.
         """
         if data.document_id not in self.available_docs:
-            print(
+            log(
                 DOC_NOT_AVAILABLE.format(data.document_id)
             )
             return
@@ -390,10 +401,13 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         This event handler is unique in that it sends data back to the caller.
         """
         if data.document_id not in self.open_docs:
-            print(
+            log(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return
+
+        log('{0}: Recieved text modifications:'.format(self))
+        log(data.modifications)
 
         d_patches = flexible_dmp.patch_fromText(data.modifications)
         s_patches = fragile_dmp.patch_fromText(data.modifications)
@@ -401,14 +415,28 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         document = self.open_docs[data.document_id]
         shadow = self.shadow_docs[data.document_id]
 
+        log('{0}: Document text before modification:'.format(self))
+        log(document.content)
+        log('{0}: Shadow text before modification:'.format(self))
+        log(shadow.content)
+
         # Add plugin call here
         document.patch(d_patches, dmp=flexible_dmp)
         shadow.patch(s_patches, dmp=fragile_dmp)
 
-        mods = flexible_dmp.patch_toText(
+        log('{0}: Document text after modification:'.format(self))
+        log(document.content)
+        log('{0}: Shadow text after modification:'.format(self))
+        log(shadow.content)
+        assert(str(hash(shadow.content)) == data.hash)
+
+        mods = fragile_dmp.patch_toText(
             shadow.make_patches(document.content, fragile_dmp)
         )
         shadow.update(document)
+
+        log('{0}: Sending modifications:'.format(self))
+        log(mods)
 
         reactor.callLater(
             self.send_delay,
@@ -417,7 +445,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
                 'text_modified',
                 document_id=data.document_id,
                 version=document.version,
-                modifications=mods
+                modifications=mods,
+                hash=str(hash(shadow.content))
             )
         )
 
@@ -426,7 +455,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         Modify the metadata in the specified document.
         """
         if data.document_id not in self.open_docs:
-            print(
+            log(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return
@@ -444,7 +473,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
     def version_modified(self, data):
         if data.document_id not in self.open_docs:
-            print(
+            log(
                 DOC_NOT_OPEN.format(data.document_id)
             )
             return
