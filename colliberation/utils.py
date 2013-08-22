@@ -33,7 +33,7 @@ class Pipeline(object):
         self.stopped = False
 
 
-def pipeline_funcs(functions, data, can_stop=True, can_cancel=True):
+def pipeline_funcs(functions, data, can_stop, can_cancel):
         """
         Runs data through a pipeline of functions. Similar to map, but runs
         the result of each function through the next function.
@@ -43,7 +43,7 @@ def pipeline_funcs(functions, data, can_stop=True, can_cancel=True):
         cancel = False
 
         for hook in functions:
-
+            
             if can_cancel and can_stop:
                 proceed, cancel, piped_data = hook(piped_data)
             elif can_cancel:

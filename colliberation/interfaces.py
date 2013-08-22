@@ -43,16 +43,14 @@ class IDocument(Interface):
 
         """)
 
-    def insert_text(position, text, version):
-        """ Insert text into the document.
+    def change_text(start, end, text):
+        """ Insert or replace text into the document.
 
-        Inserts the given text into the document's content at the specified
-        position. The given version specifies what version of document the text
-        should be inserted into.
+        Inserts or replaces the given text into the document's content at the 
+        specified position.
 
-        :param int position: Position to insert the text at in the document.
+        :param int start: Position to insert the text at in the document.
         :param str text: Text to insert into the document.
-        :param str version: Version of the document to insert the text into.
         """
 
     def delete_text(position, text, version):

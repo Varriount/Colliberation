@@ -1,21 +1,24 @@
-from zope.interface import implements
+from copy import deepcopy
 
 from colliberation.interfaces import IDocument
-
-from diff_match_patch import diff_match_patch as DMP
-
-from copy import deepcopy
 from twisted.internet.defer import Deferred
-
+from zope.interface import implements
 
 DOC_TEXT_CHANGE_LOG = 'Changing document text at {0}:{1} to "{2}"'
 DOC_TEXT_DELETED_LOG = 'Deleting document text at {0}:{1}'
+
+DEBUG = True
+
+
+def log(text):
+    if DEBUG:
+        print(text)
 
 
 class Document(object):
 
     """
-    A shared document meant for modification from multiple sources.
+    A shared document supporting modification from multiple sources.
     Supports basic and advanced text manipulation, including text
     insertion, deletion, diffing, patching, etc.
     """
@@ -24,14 +27,26 @@ class Document(object):
     state_deferral = None
 
     def __init__(self, **kwargs):
+        """Initialize the document with the given data.
+
+        Note that any child classes should call this method when
+        initializing, unless they plan to set these attributes themselves.
+        """
         self.id = kwargs.get('id', 0)
         self.name = kwargs.get('name', '')
         self.content = kwargs.get('content', '')
         self.version = kwargs.get('version', 0)
         self.url = kwargs.get('url', '')
         self.metadata = kwargs.get('metadata', dict())
+        self.serializer = kwargs.get('serializer', None)
 
     def __eq__(self, other):
+        """Comparison function.
+
+        Child classes should usually call this function.
+
+        :param other: Object to compare against.
+        """
         if not isinstance(other, Document):
             return False
         results = (
@@ -65,7 +80,18 @@ class Document(object):
         )
 
     def change_text(self, start, text, end):
-        print(
+        """Change (Replace or insert) a document's content.
+
+        This function should be called whenever a document's contents need
+        to be modified, rather than changing a document's content attribute.
+        This allows child classes to hook into specific text operations.
+
+        :param int start: The start position. The position 'x' is the space
+            after the x'th character in the documents content.
+        :param str text: The text to insert.
+        :param int end: The end position.
+        """
+        log(
             DOC_TEXT_CHANGE_LOG.format(start, end, text)
         )
 
@@ -75,7 +101,14 @@ class Document(object):
                         )
 
     def delete_text(self, start, end):
-        print(
+        """Delete a section of a document's content.
+
+        See :change_text:
+
+        :param int start: The start position.
+        :param int end: The end position.
+        """
+        log(
             DOC_TEXT_DELETED_LOG.format(start, end)
         )
         self.content = (self.content[:start] +
@@ -83,9 +116,15 @@ class Document(object):
                         )
 
     def diff(self, text, dmp):
-        """
-        Generates list of diffs from the documents content against
+        """ Diff this document against the given text.
+
+        Generates a list of differences from the documents content against
         the given text.
+
+        :param str text: Text to compare against.
+        :param DMP dmp: A diff match patch object.
+
+        :returns: A list of differences
         """
         diffs = dmp.main_diff(self.content, text)
         return diffs
@@ -95,21 +134,24 @@ class Document(object):
 
         Diffs the given text with the document's content, and transforms
         the diff into a series of patches.
+
+        :param str text: Text to compare against.
+        :param DMP dmp: Diff match patch object to use.
         """
         data = dmp.diff_main(self.content, text)
         data = dmp.patch_make(self.content, data)
         return data
 
     def patch(self, patches, dmp):
-        print(patches)
+        log(patches)
         new_content, results = dmp.patch_apply(patches, self)
         if len(results) != 0:
-            print(new_content)
-            print("Patch results: " + str(results))
+            log(new_content)
+            log("Patch results: " + str(results))
         return results
 
     def update(self, document):
-        """ Updates this document to match the other document
+        """ Updates this document to match the other document.
         """
         self.name = document.name
         self.content = document.content
@@ -124,3 +166,6 @@ class Document(object):
     def close(self):
         if self.state_deferral is not None:
             self.state_deferral.callback(self)
+
+    def save(self):
+        self.serializer.save(self)

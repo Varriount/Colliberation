@@ -157,8 +157,8 @@ def parse_packets(bytestream):
 
     if DUMP_ALL_PACKETS:
         for packet in l:
-            print "Parsed packet %d" % packet[0]
-            print packet[1]
+            print("Parsed packet %d" % packet[0])
+            print(packet[1])
 
     return l, leftovers
 

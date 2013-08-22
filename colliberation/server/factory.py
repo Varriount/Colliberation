@@ -1,9 +1,13 @@
-from weakref import WeakValueDictionary
+from twisted.internet.task import LoopingCall
 '''from bravo_plugin import retrieve_named_plugins'''
 
 from twisted.internet.protocol import ServerFactory
 
 from colliberation.server.protocol import CollabServerProtocol
+from colliberation.packets import make_packet
+
+
+SAVE_FREQUENCY = 60
 
 
 class CollabServerFactory(ServerFactory):
@@ -17,6 +21,7 @@ class CollabServerFactory(ServerFactory):
 
         self.protocols = {}
         self.available_docs = {}
+        self.save_loop = LoopingCall(self.save_all_docs)
 
         if protocol_hooks is not None:
             self.hooks = protocol_hooks
@@ -25,13 +30,26 @@ class CollabServerFactory(ServerFactory):
 
     def startFactory(self):
         print('Factory started')
+        self.save_loop.start(SAVE_FREQUENCY)
 
     def stopFactory(self):
         print('Factory stopped')
+        self.save_loop.stop()
 
     def broadcast(self, packet):
         for protocol in self.protocols.itervalues():
             protocol.transport.write(packet)
+
+    def save_all_docs(self):
+        self_broadcast = self.broadcast
+        for document_id, document in self.available_docs.iteritems():
+            document.save()
+            packet = make_packet(
+                'document_saved',
+                document_id=document_id,
+                version=document.version
+            )
+            self_broadcast(packet)
 
     def buildProtocol(self, addr):
         print('{0} is connecting...'.format(str(addr)))

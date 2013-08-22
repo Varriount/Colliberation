@@ -9,7 +9,6 @@ from colliberation.serializer import DiskSerializer
 from colliberation.utils import pipeline_funcs
 
 from diff_match_patch import diff_match_patch as DMP
-from copy import deepcopy
 
 from warnings import warn
 
@@ -168,6 +167,9 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     username = ''
     password = ''
 
+    # ID
+    latest_id = 0
+
     def __init__(self, **kwargs):
         BaseCollaborationProtocol.__init__(self, **kwargs)
         # Document datas
@@ -243,7 +245,12 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             hooks = self.message_hooks
 
         message = data.message
-        message = pipeline_funcs(hooks, message)
+        message = pipeline_funcs(
+            hooks,
+            message,
+            can_stop=True,
+            can_cancel=True
+        )
         if message is not None:
             log(message)
             return True
@@ -257,7 +264,12 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             hooks = self.error_hooks
 
         message = data.message
-        message = pipeline_funcs(hooks, message)
+        message = pipeline_funcs(
+            hooks,
+            message,
+            can_stop=True,
+            can_cancel=True
+        )
         if message is not None:
             log(message)
             return True
@@ -276,7 +288,12 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         document = self.available_docs[data.document_id]
         shadow = self.shadow_class()
         shadow.update(document)
-        document = pipeline_funcs(hooks, document)
+        document = pipeline_funcs(
+            hooks,
+            document,
+            can_stop=True,
+            can_cancel=True
+        )
 
         if document is not None:
             self.open_docs[data.document_id] = document
@@ -308,7 +325,12 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
         document = self.open_docs.pop(data.document_id)
         self.shadow_docs.pop(data.document_id)
-        document = pipeline_funcs(hooks, document)
+        document = pipeline_funcs(
+            hooks,
+            document,
+            can_stop=True,
+            can_cancel=True
+        )
         document.close()
 
         if document is not None:
@@ -330,7 +352,12 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             return
 
         document = self.open_docs[data.document_id]
-        document = pipeline_funcs(hooks, document)
+        document = pipeline_funcs(
+            hooks,
+            document,
+            can_stop=True,
+            can_cancel=True
+        )
         if document is not None:
             self.serializer.save_document(document)
             return True
@@ -351,7 +378,12 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             document = self.doc_class(id=data.document_id,
                                       version=data.version,
                                       name=data.document_name)
-            document = pipeline_funcs(hooks, document)
+            document = pipeline_funcs(
+                hooks,
+                document,
+                can_stop=True,
+                can_cancel=True
+            )
             if document is not None:
                 self.available_docs[data.document_id] = document
                 return True
@@ -468,7 +500,11 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         else:
             document = self.open_docs[data.document_id]
             metadata = pipeline_funcs(
-                hooks, document, cancellable=True, stoppable=True)
+                hooks,
+                document,
+                cancellable=True,
+                stoppable=True
+            )
             document.metadata[data.key] = data.value
 
     def version_modified(self, data):

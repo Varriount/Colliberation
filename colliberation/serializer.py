@@ -13,6 +13,13 @@ class DiskSerializer(object):
     implements(IDocumentSerializer)
 
     def load_document(self, url):
+        """ Load a document from the disk.
+
+        Loads a pickled document object from the file located at the 
+        specified URL.
+
+        :param str url: URL Location of the pickled document.
+        """
         parts = urlparse(url)
         if parts.scheme != 'file':
             raise Exception('URL {0} is not a file'.format(parts.scheme))
@@ -22,6 +29,13 @@ class DiskSerializer(object):
         return data
 
     def save_document(self, document):
+        """Saves a document to disk.
+        
+        Pickles a document and, using the document's url attribute, 
+        saves it to disk. 
+        
+        :param Document document: Document to save.
+        """
         parts = urlparse(document.url)
         if parts.scheme != 'file':
             raise Exception('URL {0} is not a file'.format(parts.scheme))
