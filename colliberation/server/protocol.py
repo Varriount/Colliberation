@@ -105,6 +105,7 @@ class CollabServerProtocol(CollaborationProtocol):
 
         Send a name_modified packet.
         """
+        data.document_id = int()
         CollaborationProtocol.name_modified(self, data)
         packet = make_packet(
             'name_modified',

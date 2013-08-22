@@ -4,6 +4,10 @@
 		"selected_items":
 		[
 			[
+				"self",
+				"self_buffer_id	(local, instance)"
+			],
+			[
 				"docume",
 				"document_id"
 			],
@@ -146,10 +150,6 @@
 			[
 				"end",
 				"end_edit"
-			],
-			[
-				"self",
-				"self_view"
 			],
 			[
 				"buff",
@@ -520,55 +520,49 @@
 	"buffers":
 	[
 		{
-			"file": "colliberation/sublime/protocol.py",
+			"file": "colliberation/server/factory.py",
 			"settings":
 			{
-				"buffer_size": 677,
+				"buffer_size": 1785,
 				"line_ending": "Windows"
 			}
 		},
 		{
-			"file": "colliberation/protocol.py",
+			"contents": "",
 			"settings":
 			{
-				"buffer_size": 14836,
-				"line_ending": "Windows"
-			}
-		},
-		{
-			"file": "colliberation/server/protocol.py",
-			"settings":
-			{
-				"buffer_size": 4684,
-				"line_ending": "Windows"
-			}
-		},
-		{
-			"contents": "import sublime\n\nfrom colliberation.document import Document\n\nfrom sublime_utils import enable_listener, disable_listener, views_from_buffer\n\nfrom sublime_plugin import EventListener\n\nDEBUG = False\n\n\ndef log(text):\n    if DEBUG:\n        print(text)\n\n\nclass SublimeDocument(Document, EventListener):\n\n    \"\"\"\n    View connecting to sublime text document.\n    TODO - Optimize finding/tracking shared views\n    \"\"\"\n\n    def __init__(self, **kwargs):\n        log(\"Initialized document {0}\".format(self))\n        self.buffer_id = None\n        self.view = None\n        self._cache = ''\n        self._name = ''\n        Document.__init__(self, **kwargs)\n\n    # EventListener methods\n    def on_close(self, view):\n        self_buffer_id = self.buffer_id\n        if view.buffer_id() == self_buffer_id:\n            log(\"{0}: View closed. Switching...\".format(self))\n            available_views = views_from_buffer(self_buffer_id)\n            if available_views:\n                self.view = available_views[0]\n            elif self.state_deferral is not None:\n                log(\"{0}: Switching failed.\".format(self))\n                log(\"{0}: Nulling state_deferral, calling\".format(self))\n                deferral = self.state_deferral\n                self.state_deferral = None\n                deferral.callback(self)\n            else:\n                raise Exception(\"Ran out of views when not opened\")\n\n    # Document methods\n\n    @property\n    def content(self):\n        log(\"{0}: Content retrieved\".format(self))\n        if self.view is not None:\n            log(\"{0}: Using view's content\".format(self))\n            region = sublime.Region(0, self.view.size())\n            return self.view.substr(region)\n        else:\n            log(\"{0}: Using cached content.\".format(self))\n            return self._cache\n\n    @content.setter\n    def content(self, value):\n        log(\"{0}: Setting document content\".format(self))\n        if self.view is not None:\n            log(\"{0}: Directly setting view content\".format(self))\n            self_view = self.view\n            region = sublime.Region(0, self.view.size())\n\n            edit = self_view.begin_edit()\n            self.view.replace(edit, region, value)\n            self_view.end_edit(edit)\n        else:\n            log(\"{0}: Setting cache content\".format(self))\n            self._cache = value\n\n    @property\n    def name(self):\n        return self._name\n\n    @name.setter\n    def name(self, value):\n        self._name = value\n        if self.buffer_id is not None:\n            views = views_from_buffer\n            for window, view in views:\n                view.set_name(value)\n\n    def change_text(self, start, text, end):\n        log(\"{0}: Changing text.\".format(self))\n        region = sublime.Region(start, end)\n        edit = self.view.begin_edit()\n        self.view.replace(edit, region, text)\n        self.view.end_edit(edit)\n\n    def delete_text(self, start, end):\n        log(\"{0}: Deleting text.\".format(self))\n        region = sublime.Region(start, end)\n        edit = self.view.begin_edit()\n        self.view.erase(edit, region)\n        self.view.end_edit(edit)\n\n    def open(self):\n        \"\"\"\n        Enable listening to events,\n        Create view and buffer_id\n        \"\"\"\n        log(\"{0}: Opened\".format(self))\n        enable_listener(self)\n        if self.buffer_id is None:\n            log(\"{0}: Empty buffer ID. Creating view.\".format(self))\n            self_view = sublime.active_window().new_file()\n            \n            self_view.set_scratch(True)\n            self_view.set_name(self.name)\n\n            self.view = self_view\n            self.buffer_id = self_view.buffer_id()\n        self.content = self._cache\n        return Document.open(self)\n\n    def close(self):\n        log(\"{0}: Closing\".format(self))\n        disable_listener(self)\n        open_views = views_from_buffer(self.buffer_id)\n        args = {'group': None, 'index': None}\n        for window, view in open_views:\n            args['group'], args['index'] = window.get_view_index(view)\n            window.run_command(\"close_by_index\", args)\n\n        self._cache = self.content\n        self.buffer_id = None\n        self.view = None\n        self.state_deferral = None\n        return Document.close(self)\n",
-			"file": "colliberation/sublime/document.py",
-			"file_size": 4367,
-			"file_write_time": 130213507585844967,
-			"settings":
-			{
-				"buffer_size": 4246,
-				"line_ending": "Windows"
-			}
-		},
-		{
-			"contents": "Testing Can you see me?\nHere - abcdefghijklmnopq\nThere  abc-defhijkgmlmnopqrstuvwxyz",
-			"settings":
-			{
-				"buffer_size": 84,
+				"buffer_size": 0,
 				"line_ending": "Windows",
-				"name": "text",
+				"name": "test.py",
 				"scratch": true
 			}
 		},
 		{
-			"file": "colliberation/packets.py",
+			"file": "commands.py",
 			"settings":
 			{
-				"buffer_size": 6189,
+				"buffer_size": 7106,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "Searching 1021 files for \".document_id\" (case sensitive)\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\coliberation.sublime-workspace:\n  928  			\"close\",\n  929  			\"closing\",\n  930: 			\"if data.document_id in self.closing_docs:\",\n  931  			\"close()\",\n  932  			\"set_status\",\n  ...\n 1048  			\"\",\n 1049  			\"{0}:\",\n 1050: 			\"if data.document_id not in self.open_docs:\",\n 1051  			\"Interface\",\n 1052  			\"argument\",\n ....\n 1068  			\"CollaborationProtocol\",\n 1069  			\"ColliberationProtocol\",\n 1070: 			\"if data.document_id not in self.available_docs:\",\n 1071: 			\"if data.document_id not in self.open_docs:\",\n 1072  			\"data\",\n 1073: 			\"self._warn_doc_not_found(container.document_id)\",\n 1074: 			\"document = self.open_docs[container.document_id]\",\n 1075  			\"self.available_docs\",\n 1076  			\"self.open_docs\",\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\colliberation\\protocol.py:\n  286              hooks = self.doc_open_hooks\n  287  \n  288:         document = self.available_docs[data.document_id]\n  289          shadow = self.shadow_class()\n  290          shadow.update(document)\n  ...\n  297  \n  298          if document is not None:\n  299:             self.open_docs[data.document_id] = document\n  300:             self.shadow_docs[data.document_id] = shadow\n  301              d = document.open()\n  302              # TODO - Does shadow.open and close need to be called?\n  ...\n  318          if func_hooks is None:\n  319              hooks = self.doc_close_hooks\n  320:         if data.document_id not in self.open_docs:\n  321              log(\n  322:                 DOC_NOT_OPEN.format(data.document_id)\n  323              )\n  324              return\n  325  \n  326:         document = self.open_docs.pop(data.document_id)\n  327:         self.shadow_docs.pop(data.document_id)\n  328          document = pipeline_funcs(\n  329              hooks,\n  ...\n  335  \n  336          if document is not None:\n  337:             self.available_docs[data.document_id] = document\n  338              return True\n  339          return False\n  ...\n  346          if func_hooks is None:\n  347              hooks = self.doc_save_hooks\n  348:         if data.document_id not in self.open_docs:\n  349              log(\n  350:                 DOC_NOT_OPEN.format(data.document_id)\n  351              )\n  352              return\n  353  \n  354:         document = self.open_docs[data.document_id]\n  355          document = pipeline_funcs(\n  356              hooks,\n  ...\n  373              hooks = self.doc_add_hooks\n  374  \n  375:         if data.document_id in self.available_docs:\n  376:             warn('Document {0} already exists'.format(data.document_id))\n  377          else:\n  378:             document = self.doc_class(id=data.document_id,\n  379                                        version=data.version,\n  380                                        name=data.document_name)\n  ...\n  386              )\n  387              if document is not None:\n  388:                 self.available_docs[data.document_id] = document\n  389                  return True\n  390          return False\n  ...\n  397          \"\"\"\n  398          self.document_closed(data)\n  399:         if data.document_id in self.available_docs:\n  400:             del(self.available_docs[data.document_id])\n  401          else:\n  402              log(\n  403:                 DOC_NOT_AVAILABLE.format(data.document_id)\n  404              )\n  405  \n  ...\n  414          name variable, raising a warning if the document cannot be found.\n  415          \"\"\"\n  416:         if data.document_id not in self.available_docs:\n  417              log(\n  418:                 DOC_NOT_AVAILABLE.format(data.document_id)\n  419              )\n  420              return\n  421  \n  422:         document = self.available_docs[data.document_id]\n  423          document.name = data.new_name\n  424  \n  ...\n  433          This event handler is unique in that it sends data back to the caller.\n  434          \"\"\"\n  435:         if data.document_id not in self.open_docs:\n  436              log(\n  437:                 DOC_NOT_OPEN.format(data.document_id)\n  438              )\n  439              return\n  ...\n  445          s_patches = fragile_dmp.patch_fromText(data.modifications)\n  446  \n  447:         document = self.open_docs[data.document_id]\n  448:         shadow = self.shadow_docs[data.document_id]\n  449  \n  450          log('{0}: Document text before modification:'.format(self))\n  ...\n  476              make_packet(\n  477                  'text_modified',\n  478:                 document_id=data.document_id,\n  479                  version=document.version,\n  480                  modifications=mods,\n  ...\n  487          Modify the metadata in the specified document.\n  488          \"\"\"\n  489:         if data.document_id not in self.open_docs:\n  490              log(\n  491:                 DOC_NOT_OPEN.format(data.document_id)\n  492              )\n  493              return\n  ...\n  496              hooks = self.metadata_mod_hooks\n  497  \n  498:         if data.document_id not in self.open_docs:\n  499:             self._warn_doc_not_open(data.document_id)\n  500          else:\n  501:             document = self.open_docs[data.document_id]\n  502              metadata = pipeline_funcs(\n  503                  hooks,\n  ...\n  509  \n  510      def version_modified(self, data):\n  511:         if data.document_id not in self.open_docs:\n  512              log(\n  513:                 DOC_NOT_OPEN.format(data.document_id)\n  514              )\n  515              return\n  516  \n  517:         document = self.open_docs[data.document_id]\n  518          document.version = data.version\n  519  \n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\colliberation\\server\\protocol.py:\n   38          CollaborationProtocol.document_opened(self, data)\n   39          packet = make_packet('document_opened',\n   40:                              document_id=data.document_id,\n   41                               version=data.version)\n   42  \n   43          mod_packet = make_packet(\n   44              'text_modified',\n   45:             document_id=data.document_id,\n   46              version=data.version,\n   47              modifications='',\n   48:             hash=str(hash(self.shadow_docs[data.document_id].content))\n   49          )\n   50  \n   ..\n   59          CollaborationProtocol.document_closed(self, data)\n   60          packet = make_packet('document_closed',\n   61:                              document_id=data.document_id,\n   62                               version=data.version)\n   63  \n   ..\n   71          CollaborationProtocol.document_saved(self, data)\n   72          packet = make_packet('document_saved',\n   73:                              document_id=data.document_id,\n   74                               version=data.version)\n   75  \n   ..\n   83          CollaborationProtocol.document_added(self, data)\n   84          packet = make_packet('document_added',\n   85:                              document_id=data.document_id,\n   86                               version=data.version,\n   87                               document_name=data.document_name)\n   ..\n   96          CollaborationProtocol.document_deleted(self, data)\n   97          packet = make_packet('document_deleted',\n   98:                              document_id=data.document_id,\n   99                               version=data.version)\n  100  \n  ...\n  109          packet = make_packet(\n  110              'name_modified',\n  111:             document_id=data.document_id,\n  112              version=data.version,\n  113              new_name=data.new_name\n  ...\n  129          CollaborationProtocol.metadata_modified(self, data)\n  130          packet = make_packet('metadata_modified',\n  131:                              document_id=data.document_id,\n  132                               type=data.type,\n  133                               key=data.key,\n  ...\n  143          CollaborationProtocol.version_modified(self, data)\n  144          packet = make_packet('version_modified',\n  145:                              document_id=data.document_id,\n  146                               version=data.version,\n  147                               new_version=data.new_version)\n\n50 matches across 3 files\n\n\nSearching 1021 files for \"document_id=\" (case sensitive)\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\coliberation.sublime-workspace:\n  974  			\"version=80\",\n  975  			\"error_type=5\",\n  976: 			\"document_id=60\",\n  977  			\"ColliberationProtocol\",\n  978  			\"ColliborationProtocol\",\n  ...\n 1065  			\"version=ver\",\n 1066  			\"error_type=err_type\",\n 1067: 			\"document_id=doc_id\",\n 1068  			\"CollaborationProtocol\",\n 1069  			\"ColliberationProtocol\",\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\colliberation\\protocol.py:\n  307      def doc_callback(self, document):\n  308          p = make_packet('document_closed',\n  309:                         document_id=document.id,\n  310                          version=document.version)\n  311          self.transport.write(p)\n  ...\n  476              make_packet(\n  477                  'text_modified',\n  478:                 document_id=data.document_id,\n  479                  version=document.version,\n  480                  modifications=mods,\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\colliberation\\server\\factory.py:\n   47              packet = make_packet(\n   48                  'document_saved',\n   49:                 document_id=document_id,\n   50                  version=document.version\n   51              )\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\colliberation\\server\\protocol.py:\n   23              packet = make_packet(\n   24                  'document_added',\n   25:                 document_id=doc_id,\n   26                  version=document.version,\n   27                  document_name=document.name\n   ..\n   38          CollaborationProtocol.document_opened(self, data)\n   39          packet = make_packet('document_opened',\n   40:                              document_id=data.document_id,\n   41                               version=data.version)\n   42  \n   43          mod_packet = make_packet(\n   44              'text_modified',\n   45:             document_id=data.document_id,\n   46              version=data.version,\n   47              modifications='',\n   ..\n   59          CollaborationProtocol.document_closed(self, data)\n   60          packet = make_packet('document_closed',\n   61:                              document_id=data.document_id,\n   62                               version=data.version)\n   63  \n   ..\n   71          CollaborationProtocol.document_saved(self, data)\n   72          packet = make_packet('document_saved',\n   73:                              document_id=data.document_id,\n   74                               version=data.version)\n   75  \n   ..\n   83          CollaborationProtocol.document_added(self, data)\n   84          packet = make_packet('document_added',\n   85:                              document_id=data.document_id,\n   86                               version=data.version,\n   87                               document_name=data.document_name)\n   ..\n   96          CollaborationProtocol.document_deleted(self, data)\n   97          packet = make_packet('document_deleted',\n   98:                              document_id=data.document_id,\n   99                               version=data.version)\n  100  \n  ...\n  109          packet = make_packet(\n  110              'name_modified',\n  111:             document_id=data.document_id,\n  112              version=data.version,\n  113              new_name=data.new_name\n  ...\n  129          CollaborationProtocol.metadata_modified(self, data)\n  130          packet = make_packet('metadata_modified',\n  131:                              document_id=data.document_id,\n  132                               type=data.type,\n  133                               key=data.key,\n  ...\n  143          CollaborationProtocol.version_modified(self, data)\n  144          packet = make_packet('version_modified',\n  145:                              document_id=data.document_id,\n  146                               version=data.version,\n  147                               new_version=data.new_version)\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\colliberation\\tests\\utils.py:\n   56  \n   57          'open_packet': MagicMock('document_opened',\n   58:                                  document_id=doc_id,\n   59                                   version=ver),\n   60  \n   61          'save_packet': MagicMock('document_saved',\n   62:                                  document_id=doc_id,\n   63                                   version=ver),\n   64  \n   65          'closed_packet': MagicMock('document_closed',\n   66:                                    document_id=doc_id,\n   67                                     version=ver),\n   68  \n   69          'add_packet': MagicMock('document_added',\n   70:                                 document_id=doc_id,\n   71                                  version=ver,\n   72                                  document_name=doc_name),\n   73  \n   74          'delete_packet': MagicMock('document_deleted',\n   75:                                    document_id=doc_id,\n   76                                     version=ver),\n   77  \n   78          'name_mod_packet': MagicMock('name_modified',\n   79:                                      document_id=doc_id,\n   80                                       version=ver,\n   81                                       new_name=doc_newname),\n   82  \n   83          'text_mod_packet': MagicMock('text_modified',\n   84:                                      document_id=doc_id,\n   85                                       version=ver,\n   86                                       modifications=''),\n   87  \n   88          'metadata_mod_packet': MagicMock('metadata_modified',\n   89:                                          document_id=doc_id,\n   90                                           version=ver,\n   91                                           type='int',\n   ..\n   94  \n   95          'version_mod_packet': MagicMock('version_modified',\n   96:                                         document_id=doc_id,\n   97                                          version=ver,\n   98                                          new_version=ver + 1)\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\commands.py:\n  197          open_packet = make_packet(\n  198              'document_opened',\n  199:             document_id=document.id,\n  200              version=document.version)\n  201          self.client.transport.write(open_packet)\n  ...\n  222              name_mod_packet = make_packet(\n  223                  'name_modified',\n  224:                 document_id=document.id,\n  225                  version=document.version,\n  226                  new_name=input\n  ...\n  258          add_packet = make_packet(\n  259              'document_added',\n  260:             document_id=2,\n  261              version=0,\n  262              document_name=document_name\n  ...\n  280          delete_packet = make_packet(\n  281              'document_deleted',\n  282:             document_id=document.id,\n  283              version=document.version\n  284          )\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\poller.py:\n   59  \n   60  open_packet = make_packet('document_opened',\n   61:                           document_id=60,\n   62                            version=80)\n   63  \n   64  closed_packet = make_packet('document_closed',\n   65:                             document_id=60,\n   66                              version=80)\n   67  \n   68  add_packet = make_packet('document_added',\n   69:                          document_id=60,\n   70                           version=80,\n   71                           document_name='test.py')\n   72  \n   73  delete_packet = make_packet('document_deleted',\n   74:                             document_id=60,\n   75                              version=80)\n   76  \n   77  name_mod_packet = make_packet('name_modified',\n   78:                               document_id=60,\n   79                                version=80,\n   80                                new_name='table.py')\n   81  \n   82  text_mod_packet = make_packet('text_modified',\n   83:                               document_id=60,\n   84                                version=80,\n   85                                modifications='@@ -0,0 +1,7 @@\\n+abcdefg\\n')\n   86  \n   87  metadata_mod_packet = make_packet('metadata_modified',\n   88:                                   document_id=60,\n   89                                    version=80,\n   90                                    type='int',\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\scripts\\start_client.py:\n   18  \n   19  open_packet = make_packet('document_opened',\n   20:                           document_id=60,\n   21                            version=80)\n   22  \n   23  closed_packet = make_packet('document_closed',\n   24:                             document_id=60,\n   25                              version=80)\n   26  \n   27  add_packet = make_packet('document_added',\n   28:                          document_id=60,\n   29                           version=80,\n   30                           document_name='test.py')\n   31  \n   32  delete_packet = make_packet('document_deleted',\n   33:                             document_id=60,\n   34                              version=80)\n   35  \n   36  name_mod_packet = make_packet('name_modified',\n   37:                               document_id=60,\n   38                                version=80,\n   39                                new_name='table.py')\n   40  \n   41  text_mod_packet = make_packet('text_modified',\n   42:                               document_id=60,\n   43                                version=80,\n   44                                modifications='')\n   45  \n   46  metadata_mod_packet = make_packet('metadata_modified',\n   47:                                   document_id=60,\n   48                                    version=80,\n   49                                    type='int',\n\nC:\\Users\\Clay\\AppData\\Roaming\\Sublime Text 2\\Packages\\Colliberation\\scripts\\start_client_poll.py:\n   18  \n   19  open_packet = make_packet('document_opened',\n   20:                           document_id=60,\n   21                            version=80)\n   22  \n   23  closed_packet = make_packet('document_closed',\n   24:                             document_id=60,\n   25                              version=80)\n   26  \n   27  add_packet = make_packet('document_added',\n   28:                          document_id=60,\n   29                           version=80,\n   30                           document_name='test.py')\n   31  \n   32  delete_packet = make_packet('document_deleted',\n   33:                             document_id=60,\n   34                              version=80)\n   35  \n   36  name_mod_packet = make_packet('name_modified',\n   37:                               document_id=60,\n   38                                version=80,\n   39                                new_name='table.py')\n   40  \n   41  text_mod_packet = make_packet('text_modified',\n   42:                               document_id=60,\n   43                                version=80,\n   44                                modifications='')\n   45  \n   46  metadata_mod_packet = make_packet('metadata_modified',\n   47:                                   document_id=60,\n   48                                    version=80,\n   49                                    type='int',\n\n49 matches across 9 files\n",
+			"settings":
+			{
+				"buffer_size": 19795,
+				"line_ending": "Windows",
+				"name": "Find Results",
+				"scratch": true
+			}
+		},
+		{
+			"contents": "# TODO\n# Add documentation\n# Clean up variable & function names\n# Sort imports\n# Finish command interface with core, factory, and protocols\n# Allow for multiple clients\n#\n\nfrom sublime_plugin import ApplicationCommand\nimport sublime\n\nimport sys\nimport platform\nimport os\nimport time\n\n# Hack to allow us to import external libraries\n__file__ = os.path.normpath(os.path.abspath(__file__))\n__path__ = os.path.dirname(__file__)\nlibs_path = os.path.join(__path__, 'libs')\nbit, other = platform.architecture()\nbit_path = os.path.join(libs_path, bit)\nif libs_path not in sys.path:\n    sys.path.insert(0, libs_path)\n    sys.path.insert(0, bit_path)\n\n# Another hack, to incorporate twisteds reactor\nfrom sublime_utils import install_twisted\ninstall_twisted()\n\n# Now back to our regularly scheduled programming\nfrom colliberation.packets import make_packet\nfrom colliberation.sublime.factory import SublimeClientFactory\n\nfrom sublime_utils import MultiPrompt\n# Commands\n\n\nclass PsuedoFactory(object):\n    factory = None\n    connected = False\n    client = None\n\n    @classmethod\n    def startedConnecting(self, connector):\n        print(\"Started\")\n        self.connected = True\n\n    @classmethod\n    def clientConnectionFailed(self, connector, reason):\n        self.connected = False\n        # self.client = None\n\n    @classmethod\n    def clientConnectionLost(self, connector, reason):\n        self.connected = False\n        self.client = None\n\n\nclass CollaborationCommand(ApplicationCommand, PsuedoFactory):\n\n    \"\"\"\n    Base class for collaboration commands.\n    Provides utility functions and such.\n    \"\"\"\n    factory = SublimeClientFactory(PsuedoFactory)\n\n    def choose_file(self, callback=None):\n        documents = self.client.available_docs\n        choices, conversions = [], []\n        if callback is None:\n            callback = self.null\n\n        for document in documents.itervalues():\n            choices.append(document.name)\n            conversions.append(document)\n\n        def conversion_callback(slot):\n            if slot is -1:\n                callback(None)\n            else:\n                callback(conversions[slot])\n\n        sublime.active_window().show_quick_panel(\n            choices, conversion_callback\n        )\n\n    def null(self, item):\n        pass\n\n    def description(self):\n        return self.__doc__().strip('    ').replace('\\n', ' ')\n\n    def is_visible(self):\n        return self.is_enabled()\n\n    def is_connected(self):\n        if self.client is not None:\n            return self.connected\n        return False\n\n\nclass OpenLogView(CollaborationCommand):\n\n    \"\"\"\n    Open the logging view for the colliberation plugin.\n    \"\"\"\n\n    def run(self):\n        self.handler.open()\n\n    def is_enabled(self):\n        return True\n\n\nclass ConnectToServer(CollaborationCommand):\n\n    \"\"\"\n    Connect to a document collaboration server.\n    \"\"\"\n\n    def __init__(self):\n        self.connection_prompt = MultiPrompt(\n            prompts=[\n                ('Server IP Address?', '127.0.0.1'),\n                ('Server Port?', '6687'),\n            ],\n            on_done=self.connect,\n            on_change=None,\n            on_cancel=None\n        )\n\n    def run(self):\n        self.connection_prompt.start_prompt()\n\n    def connect(self, results):\n        # Validate user input\n        address, port = results\n        try:\n            port = int(port)\n        except ValueError:\n            sublime.status_message(\n                'Invalid address or port : {0}, {1} .'.format(address, port)\n            )\n        else:\n            # Send a connection request to the factory\n            deferred = self.factory.connect_to_server(address, port)\n            deferred.addCallback(self.set_client)\n\n    def set_client(self, client):\n        PsuedoFactory.client = client\n\n    def is_enabled(self):\n        return not self.is_connected()\n\n\nclass DisconnectFromServer(CollaborationCommand):\n\n    \"\"\"\n    Disconnect from a document collaboration server.\n    \"\"\"\n\n    def run(self):\n        sublime.status_message('Disconnecting from collaboration server...')\n        self.client.transport.loseConnection()\n        sublime.status_message('Disconnected from collaboration server.')\n\n    def is_enabled(self):\n        return self.is_connected()\n\n\nclass ListAvailableDocuments(CollaborationCommand):\n\n    \"\"\"\n    List available documents on the collaboration server.\n    \"\"\"\n\n    def run(self):\n        self.choose_file(None)\n\n    def is_enabled(self):\n        return self.is_connected()\n\n\nclass OpenDocument(CollaborationCommand):\n\n    \"\"\"\n    Open a document available on the collaboration server.\n    \"\"\"\n\n    def run(self):\n        self.choose_file(self.open_document)\n\n    def open_document(self, document):\n        if document is None:\n            return\n\n        open_packet = make_packet(\n            'document_opened',\n            document_id=document.id,\n            version=document.version)\n        self.client.transport.write(open_packet)\n\n        sublime.status_message(\n            'Opening {0}'.format(document)\n        )\n\n    def is_enabled(self):\n        return self.is_connected()\n\n\nclass RenameDocument(CollaborationCommand):\n\n    \"\"\"\n    Rename a document available on the collaboration server.\n    \"\"\"\n\n    def run(self):\n        self.choose_file(self.step_two)\n\n    def step_two(self, document):\n        def step_three(input):\n            name_mod_packet = make_packet(\n                'name_modified',\n                document_id=document.id,\n                version=document.version,\n                new_name=input\n            )\n            self.client.transport.write(name_mod_packet)\n\n        sublime.active_window().show_input_panel(\n            'New name?',  # Prompt\n            '',  # Default value\n            step_three,  # Callback\n            None,\n            None\n        )\n\n    def is_enabled(self):\n        return self.is_connected()\n\n\nclass AddDocument(CollaborationCommand):\n\n    \"\"\"\n    Add a document to the collaboration server.\n    \"\"\"\n\n    def run(self):\n        sublime.active_window().show_input_panel(\n            \"New document name?\",  # Prompt\n            \"\",  # Default value\n            self.add_document,  # Callback\n            None,\n            None\n        )\n\n    def add_document(self, document_name):\n        add_packet = make_packet(\n            'document_added',\n            # Needs a better approach\n            document_id=hash(document_name),\n            version=0,\n            document_name=document_name\n        )\n        self.client.transport.write(add_packet)\n\n    def is_enabled(self):\n        return self.is_connected()\n\n\nclass DeleteDocument(CollaborationCommand):\n\n    \"\"\"\n    Delete a document on the collaboration server.\n    \"\"\"\n\n    def run(self):\n        self.choose_file(self.delete_document)\n\n    def delete_document(self, document):\n        delete_packet = make_packet(\n            'document_deleted',\n            document_id=document.id,\n            version=document.version\n        )\n        self.client.transport.write(delete_packet)\n\n    def is_enabled(self):\n        return self.is_connected()\n",
+			"file": "/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/commands.py",
+			"file_size": 7396,
+			"file_write_time": 130216561869649782,
+			"settings":
+			{
+				"buffer_size": 7088,
 				"line_ending": "Windows"
 			}
 		}
@@ -576,9 +570,33 @@
 	"build_system": "Packages/User/python27.sublime-build",
 	"command_palette":
 	{
-		"height": 392.0,
+		"height": 219.0,
 		"selected_items":
 		[
+			[
+				"floo",
+				"Floobits - Help"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"instal",
+				"Package Control: Install Package"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"remo",
+				"Package Control: Remove Package"
+			],
+			[
+				"inst",
+				"Package Control: Install Package"
+			],
 			[
 				"packa",
 				"Package Control: Install Package"
@@ -598,10 +616,6 @@
 			[
 				"conn",
 				"Collaboration: Connect To Server"
-			],
-			[
-				"install",
-				"Package Control: Install Package"
 			],
 			[
 				"ena",
@@ -640,20 +654,8 @@
 				"Format Code"
 			],
 			[
-				"instal",
-				"Package Control: Install Package"
-			],
-			[
 				"repl python",
 				"SublimeREPL: Python"
-			],
-			[
-				"insta",
-				"Package Control: Install Package"
-			],
-			[
-				"remo",
-				"Package Control: Remove Package"
 			],
 			[
 				"remov",
@@ -720,10 +722,6 @@
 				"Snippet: Function"
 			],
 			[
-				"inst",
-				"Package Control: Install Package"
-			],
-			[
 				"package",
 				"Package Control: Install Package"
 			],
@@ -760,7 +758,7 @@
 				"Package Control: Add Channel"
 			]
 		],
-		"width": 536.0
+		"width": 464.0
 	},
 	"console":
 	{
@@ -777,30 +775,60 @@
 	},
 	"file_history":
 	[
+		"/C/Users/Clay/Projects/Colliberation/colliberation/server/protocol.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/packets.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/protocol.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/document.py",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Python Flake8 Lint/lint.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/document.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/utils.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/serializer.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/interfaces.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/protocol.py",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/serializer.py",
+		"/C/Users/Clay/.floorc",
+		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/__init__.py",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/sphinx.sublime-snippet",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SublimeCodeIntel/libs/codeintel2/citadel.py",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SublimeCodeIntel/SublimeCodeIntel.py",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Default/Preferences.sublime-settings",
+		"/C/Users/Clay/Projects/arggen.py",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SideBarEnhancements/Side Bar.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/bh_core.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/BracketHighlighter/bh_core.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/BracketHighlighter/bh_wrapping.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SideBarEnhancements/messages/11.13.2012.1305.0.txt",
+		"/C/Users/Clay/Projects/Colliberation/Colliberation.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/SublimeLinter.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/Flake8Lint.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SublimeLinter/SublimeLinter.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SublimeCodeIntel/SublimeCodeIntel.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/SublimeCodeIntel.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Python Flake8 Lint/Flake8Lint.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Python Imports Sorter/Default.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/pep8_autoformat.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Python PEP8 Autoformat/pep8_autoformat.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Python PEP8 Autoformat/Default (Windows).sublime-keymap",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Package Control/Package Control.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/SublimeREPL.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SublimeREPL/SublimeREPL.sublime-settings",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/Default (Windows).sublime-keymap",
+		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Python Flake8 Lint/Default (Windows).sublime-keymap",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/server/protocol.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/protocol.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/packets.py",
 		"/C/Users/Clay/s",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/document.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/packets.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/serializer.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/factory.py",
 		"/C/Users/Clay/Projects/Colliberation/Colliberation.sublime-commands",
 		"/C/Users/Clay/Projects/Colliberation/commands.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/protocol.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/document.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/server/factory.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/server/protocol.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/interfaces.py",
 		"/C/Users/Clay/Projects/Colliberation/Main.sublime-menu",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/document.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/logview.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/protocol.py",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/client/protocol.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/commands.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/Colliberation.sublime-commands",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/sublime/core.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/utils.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/sublime/factory.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/sublime/document.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/colliberation/sublime/protocol.py",
@@ -824,7 +852,6 @@
 		"/C/Users/Clay/Projects/Colliberation/scripts/start_client.py",
 		"/C/Users/Clay/Projects/Colliberation/scripts/start_client_poll.py",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/Preferences.sublime-settings",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Default/Preferences.sublime-settings",
 		"/C/Users/Clay/Projects/Colliberation/README.markdown",
 		"/C/Users/Clay/Projects/comicall.py",
 		"/C/Users/Clay/Downloads/MermaidSwamp/Data.wolf",
@@ -835,8 +862,6 @@
 		"/C/Users/Clay/Projects/inlint/inline_func.py",
 		"/C/Users/Clay/Downloads/Pokemon Colosseum/Pokemon Colosseum - GCRip.nfo",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SublimeAStyleFormatter/SublimeAStyleFormatter.sublime-settings",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Python PEP8 Autoformat/Default (Windows).sublime-keymap",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Python Flake8 Lint/Default (Windows).sublime-keymap",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/User/SublimeAStyleFormatter.sublime-keymap",
 		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/SublimeAStyleFormatter/Default (Windows).sublime-keymap",
 		"/C/Users/Clay/Projects/Colliberation/colliberation/document_experimental.py",
@@ -877,34 +902,7 @@
 		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/colliberation.server.html",
 		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/docs/colliberation.client.html",
 		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/docs/colliberation.html",
-		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/docs/colliberation.protocol.html",
-		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/docs/colliberation.server.html",
-		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/docs/modules.html",
-		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/genindex.html",
-		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/modules.html",
-		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/py-modindex.html",
-		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/searchindex.js",
-		"/C/Users/Clay/Projects/Colliberation/docs/colliberation.protocol.rst",
-		"/C/Users/Clay/Projects/Colliberation/docs/docs/colliberation.protocol.rst",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/protocol/packets.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/protocol/protocol.py",
-		"/C/Users/Clay/Projects/Colliberation/start_interactive.bat",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/start_server",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/start_client",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/start_interactive.bat",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/start_server.bat",
-		"/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/start_client.bat",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/protocol/__init__.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/server/__init__.py",
-		"/C/Users/Clay/Projects/Colliberation/docs/theme_conf.py",
-		"/C/Users/Clay/Projects/Colliberation/docs/conf.py",
-		"/C/Users/Clay/Projects/Colliberation/docs/index.rst",
-		"/C/Users/Clay/Projects/Colliberation/docs/Makefile",
-		"/C/Users/Clay/Projects/Colliberation/libs/infinote/protocol.py",
-		"/C/Users/Clay/Projects/Colliberation/libs/infinote/document.py",
-		"/C/Users/Clay/Projects/Colliberation/optransform.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/operations.py",
-		"/C/Users/Clay/Projects/Colliberation/colliberation/tests/test_document_manager.py"
+		"/C/Users/Clay/Projects/Colliberation/docs/_build/html/docs/colliberation.protocol.html"
 	],
 	"find":
 	{
@@ -932,6 +930,11 @@
 		"case_sensitive": true,
 		"find_history":
 		[
+			"document_id=",
+			".document_id",
+			"pipe",
+			"pipeline_funcs(hooks, document)",
+			"pipe",
 			"hash",
 			"text_modified",
 			"print",
@@ -1054,12 +1057,7 @@
 			"size",
 			"Rope",
 			"queued_files",
-			"server_message",
-			"ApplicationCommand",
-			"delete_text",
-			"insert_text",
-			"rename_document",
-			"delete_document"
+			"server_message"
 		],
 		"highlight": true,
 		"in_selection": false,
@@ -1067,6 +1065,7 @@
 		"regex": false,
 		"replace_history":
 		[
+			"pipeline_funcs(hooks, document, can_stop=True, can_cancel=True)",
 			"log",
 			"print",
 			"",
@@ -1153,23 +1152,23 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 0,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "colliberation/sublime/protocol.py",
+					"file": "colliberation/server/factory.py",
 					"settings":
 					{
-						"buffer_size": 677,
+						"buffer_size": 1785,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								677,
-								677
+								1778,
+								1778
 							]
 						],
 						"settings":
@@ -1311,9 +1310,6 @@
 							"codeintel_scan_files_in_project": true,
 							"codeintel_selected_catalogs":
 							[
-								"PyWin32",
-								"jQuery",
-								"Rails"
 							],
 							"codeintel_snippets": true,
 							"codeintel_syntax_map":
@@ -1326,192 +1322,16 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 721.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "colliberation/protocol.py",
 					"settings":
 					{
-						"buffer_size": 14836,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1158,
-								1158
-							]
-						],
-						"settings":
-						{
-							"BracketHighlighterBusy": false,
-							"bh_regions":
-							[
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close"
-							],
-							"codeintel": true,
-							"codeintel_config":
-							{
-								"JavaScript":
-								{
-									"codeintel_max_recursive_dir_depth": 2,
-									"codeintel_scan_files_in_project": false,
-									"javascriptExtraPaths":
-									[
-									]
-								},
-								"PHP":
-								{
-									"codeintel_max_recursive_dir_depth": 5,
-									"codeintel_scan_files_in_project": false,
-									"phpExtraPaths":
-									[
-									]
-								},
-								"Python":
-								{
-									"env":
-									{
-									}
-								}
-							},
-							"codeintel_enabled_languages":
-							[
-								"JavaScript",
-								"Mason",
-								"XBL",
-								"XUL",
-								"RHTML",
-								"SCSS",
-								"Python",
-								"HTML",
-								"Ruby",
-								"Python3",
-								"XML",
-								"Sass",
-								"XSLT",
-								"Django",
-								"HTML5",
-								"Perl",
-								"CSS",
-								"Twig",
-								"Less",
-								"Smarty",
-								"Node.js",
-								"Tcl",
-								"TemplateToolkit",
-								"PHP"
-							],
-							"codeintel_live": true,
-							"codeintel_live_enabled_languages":
-							[
-								"JavaScript",
-								"Mason",
-								"XBL",
-								"XUL",
-								"RHTML",
-								"SCSS",
-								"Python",
-								"HTML",
-								"Ruby",
-								"Python3",
-								"XML",
-								"Sass",
-								"XSLT",
-								"Django",
-								"HTML5",
-								"Perl",
-								"CSS",
-								"Twig",
-								"Less",
-								"Smarty",
-								"Node.js",
-								"Tcl",
-								"TemplateToolkit",
-								"PHP"
-							],
-							"codeintel_max_recursive_dir_depth": 10,
-							"codeintel_scan_exclude_dir":
-							{
-								"JavaScript":
-								[
-									"/build/",
-									"/min/"
-								]
-							},
-							"codeintel_scan_files_in_project": true,
-							"codeintel_selected_catalogs":
-							[
-								"PyWin32",
-								"jQuery",
-								"Rails"
-							],
-							"codeintel_snippets": true,
-							"codeintel_syntax_map":
-							{
-								"Python Django": "Python"
-							},
-							"sublime_auto_complete": true,
-							"syntax": "Packages/Python/Python.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 756.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"file": "colliberation/server/protocol.py",
-					"settings":
-					{
-						"buffer_size": 4684,
+						"buffer_size": 0,
 						"regions":
 						{
 						},
@@ -1661,358 +1481,6 @@
 							"codeintel_scan_files_in_project": true,
 							"codeintel_selected_catalogs":
 							[
-								"PyWin32",
-								"jQuery",
-								"Rails"
-							],
-							"codeintel_snippets": true,
-							"codeintel_syntax_map":
-							{
-								"Python Django": "Python"
-							},
-							"sublime_auto_complete": true,
-							"syntax": "Packages/Python/Python.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 2492.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"file": "colliberation/sublime/document.py",
-					"settings":
-					{
-						"buffer_size": 4246,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								3484,
-								3484
-							]
-						],
-						"settings":
-						{
-							"BracketHighlighterBusy": false,
-							"bh_regions":
-							[
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close"
-							],
-							"codeintel": true,
-							"codeintel_config":
-							{
-								"JavaScript":
-								{
-									"codeintel_max_recursive_dir_depth": 2,
-									"codeintel_scan_files_in_project": false,
-									"javascriptExtraPaths":
-									[
-									]
-								},
-								"PHP":
-								{
-									"codeintel_max_recursive_dir_depth": 5,
-									"codeintel_scan_files_in_project": false,
-									"phpExtraPaths":
-									[
-									]
-								},
-								"Python":
-								{
-									"env":
-									{
-									}
-								}
-							},
-							"codeintel_enabled_languages":
-							[
-								"JavaScript",
-								"Mason",
-								"XBL",
-								"XUL",
-								"RHTML",
-								"SCSS",
-								"Python",
-								"HTML",
-								"Ruby",
-								"Python3",
-								"XML",
-								"Sass",
-								"XSLT",
-								"Django",
-								"HTML5",
-								"Perl",
-								"CSS",
-								"Twig",
-								"Less",
-								"Smarty",
-								"Node.js",
-								"Tcl",
-								"TemplateToolkit",
-								"PHP"
-							],
-							"codeintel_live": true,
-							"codeintel_live_enabled_languages":
-							[
-								"JavaScript",
-								"Mason",
-								"XBL",
-								"XUL",
-								"RHTML",
-								"SCSS",
-								"Python",
-								"HTML",
-								"Ruby",
-								"Python3",
-								"XML",
-								"Sass",
-								"XSLT",
-								"Django",
-								"HTML5",
-								"Perl",
-								"CSS",
-								"Twig",
-								"Less",
-								"Smarty",
-								"Node.js",
-								"Tcl",
-								"TemplateToolkit",
-								"PHP"
-							],
-							"codeintel_max_recursive_dir_depth": 10,
-							"codeintel_scan_exclude_dir":
-							{
-								"JavaScript":
-								[
-									"/build/",
-									"/min/"
-								]
-							},
-							"codeintel_scan_files_in_project": true,
-							"codeintel_selected_catalogs":
-							[
-								"PyWin32",
-								"jQuery",
-								"Rails"
-							],
-							"codeintel_snippets": true,
-							"codeintel_syntax_map":
-							{
-								"Python Django": "Python"
-							},
-							"sublime_auto_complete": true,
-							"syntax": "Packages/Python/Python.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 2436.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"settings":
-					{
-						"buffer_size": 84,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								84,
-								84
-							]
-						],
-						"settings":
-						{
-							"BracketHighlighterBusy": false,
-							"bh_regions":
-							[
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close"
-							],
-							"codeintel": true,
-							"codeintel_config":
-							{
-								"JavaScript":
-								{
-									"codeintel_max_recursive_dir_depth": 2,
-									"codeintel_scan_files_in_project": false,
-									"javascriptExtraPaths":
-									[
-									]
-								},
-								"PHP":
-								{
-									"codeintel_max_recursive_dir_depth": 5,
-									"codeintel_scan_files_in_project": false,
-									"phpExtraPaths":
-									[
-									]
-								},
-								"Python":
-								{
-									"env":
-									{
-									}
-								}
-							},
-							"codeintel_enabled_languages":
-							[
-								"JavaScript",
-								"Mason",
-								"XBL",
-								"XUL",
-								"RHTML",
-								"SCSS",
-								"Python",
-								"HTML",
-								"Ruby",
-								"Python3",
-								"XML",
-								"Sass",
-								"XSLT",
-								"Django",
-								"HTML5",
-								"Perl",
-								"CSS",
-								"Twig",
-								"Less",
-								"Smarty",
-								"Node.js",
-								"Tcl",
-								"TemplateToolkit",
-								"PHP"
-							],
-							"codeintel_live": true,
-							"codeintel_live_enabled_languages":
-							[
-								"JavaScript",
-								"Mason",
-								"XBL",
-								"XUL",
-								"RHTML",
-								"SCSS",
-								"Python",
-								"HTML",
-								"Ruby",
-								"Python3",
-								"XML",
-								"Sass",
-								"XSLT",
-								"Django",
-								"HTML5",
-								"Perl",
-								"CSS",
-								"Twig",
-								"Less",
-								"Smarty",
-								"Node.js",
-								"Tcl",
-								"TemplateToolkit",
-								"PHP"
-							],
-							"codeintel_max_recursive_dir_depth": 10,
-							"codeintel_scan_exclude_dir":
-							{
-								"JavaScript":
-								[
-									"/build/",
-									"/min/"
-								]
-							},
-							"codeintel_scan_files_in_project": true,
-							"codeintel_selected_catalogs":
-							[
-								"PyWin32",
-								"jQuery",
-								"Rails"
 							],
 							"codeintel_snippets": true,
 							"codeintel_syntax_map":
@@ -2029,19 +1497,19 @@
 					"type": "text"
 				},
 				{
-					"buffer": 5,
-					"file": "colliberation/packets.py",
+					"buffer": 2,
+					"file": "commands.py",
 					"settings":
 					{
-						"buffer_size": 6189,
+						"buffer_size": 7106,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								3086,
-								3086
+								0,
+								0
 							]
 						],
 						"settings":
@@ -2183,9 +1651,6 @@
 							"codeintel_scan_files_in_project": true,
 							"codeintel_selected_catalogs":
 							[
-								"PyWin32",
-								"jQuery",
-								"Rails"
 							],
 							"codeintel_snippets": true,
 							"codeintel_syntax_map":
@@ -2194,11 +1659,762 @@
 							},
 							"sublime_auto_complete": true,
 							"syntax": "Packages/Python/Python.tmLanguage",
-							"tab_size": 2,
+							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 1932.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"settings":
+					{
+						"buffer_size": 19795,
+						"regions":
+						{
+							"match":
+							{
+								"flags": 112,
+								"regions":
+								[
+									[
+										216,
+										228
+									],
+									[
+										354,
+										366
+									],
+									[
+										531,
+										543
+									],
+									[
+										592,
+										604
+									],
+									[
+										693,
+										705
+									],
+									[
+										755,
+										767
+									],
+									[
+										1033,
+										1045
+									],
+									[
+										1222,
+										1234
+									],
+									[
+										1287,
+										1299
+									],
+									[
+										1537,
+										1549
+									],
+									[
+										1644,
+										1656
+									],
+									[
+										1762,
+										1774
+									],
+									[
+										1816,
+										1828
+									],
+									[
+										1995,
+										2007
+									],
+									[
+										2192,
+										2204
+									],
+									[
+										2299,
+										2311
+									],
+									[
+										2413,
+										2425
+									],
+									[
+										2577,
+										2589
+									],
+									[
+										2679,
+										2691
+									],
+									[
+										2767,
+										2779
+									],
+									[
+										3036,
+										3048
+									],
+									[
+										3213,
+										3225
+									],
+									[
+										3297,
+										3309
+									],
+									[
+										3409,
+										3421
+									],
+									[
+										3580,
+										3592
+									],
+									[
+										3697,
+										3709
+									],
+									[
+										3816,
+										3828
+									],
+									[
+										4016,
+										4028
+									],
+									[
+										4123,
+										4135
+									],
+									[
+										4317,
+										4329
+									],
+									[
+										4376,
+										4388
+									],
+									[
+										4590,
+										4602
+									],
+									[
+										4805,
+										4817
+									],
+									[
+										4912,
+										4924
+									],
+									[
+										5060,
+										5072
+									],
+									[
+										5143,
+										5155
+									],
+									[
+										5227,
+										5239
+									],
+									[
+										5398,
+										5410
+									],
+									[
+										5505,
+										5517
+									],
+									[
+										5619,
+										5631
+									],
+									[
+										5963,
+										5975
+									],
+									[
+										6155,
+										6167
+									],
+									[
+										6301,
+										6313
+									],
+									[
+										6528,
+										6540
+									],
+									[
+										6784,
+										6796
+									],
+									[
+										7040,
+										7052
+									],
+									[
+										7362,
+										7374
+									],
+									[
+										7556,
+										7568
+									],
+									[
+										7835,
+										7847
+									],
+									[
+										8131,
+										8143
+									],
+									[
+										8517,
+										8529
+									],
+									[
+										8679,
+										8691
+									],
+									[
+										8992,
+										9004
+									],
+									[
+										9214,
+										9226
+									],
+									[
+										9543,
+										9555
+									],
+									[
+										9845,
+										9857
+									],
+									[
+										10127,
+										10139
+									],
+									[
+										10319,
+										10331
+									],
+									[
+										10589,
+										10601
+									],
+									[
+										10845,
+										10857
+									],
+									[
+										11101,
+										11113
+									],
+									[
+										11423,
+										11435
+									],
+									[
+										11617,
+										11629
+									],
+									[
+										11896,
+										11908
+									],
+									[
+										12192,
+										12204
+									],
+									[
+										12552,
+										12564
+									],
+									[
+										12732,
+										12744
+									],
+									[
+										12917,
+										12929
+									],
+									[
+										13097,
+										13109
+									],
+									[
+										13345,
+										13357
+									],
+									[
+										13534,
+										13546
+									],
+									[
+										13791,
+										13803
+									],
+									[
+										14056,
+										14068
+									],
+									[
+										14325,
+										14337
+									],
+									[
+										14654,
+										14666
+									],
+									[
+										14899,
+										14911
+									],
+									[
+										15114,
+										15126
+									],
+									[
+										15314,
+										15326
+									],
+									[
+										15573,
+										15585
+									],
+									[
+										15731,
+										15743
+									],
+									[
+										15884,
+										15896
+									],
+									[
+										16099,
+										16111
+									],
+									[
+										16261,
+										16273
+									],
+									[
+										16483,
+										16495
+									],
+									[
+										16741,
+										16753
+									],
+									[
+										17050,
+										17062
+									],
+									[
+										17208,
+										17220
+									],
+									[
+										17361,
+										17373
+									],
+									[
+										17576,
+										17588
+									],
+									[
+										17738,
+										17750
+									],
+									[
+										17960,
+										17972
+									],
+									[
+										18191,
+										18203
+									],
+									[
+										18505,
+										18517
+									],
+									[
+										18663,
+										18675
+									],
+									[
+										18816,
+										18828
+									],
+									[
+										19031,
+										19043
+									],
+									[
+										19193,
+										19205
+									],
+									[
+										19415,
+										19427
+									],
+									[
+										19646,
+										19658
+									]
+								],
+								"scope": ""
+							}
+						},
+						"selection":
+						[
+							[
+								15126,
+								15126
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close"
+							],
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"detect_indentation": false,
+							"output_tag": 2,
+							"result_base_dir": "",
+							"result_file_regex": "^([A-Za-z\\\\/<].*):$",
+							"result_line_regex": "^ +([0-9]+):",
+							"scroll_past_end": true,
+							"sublime_auto_complete": true,
+							"syntax": "Packages/Default/Find Results.hidden-tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 1100.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/C/Users/Clay/AppData/Roaming/Sublime Text 2/Packages/Colliberation/commands.py",
+					"settings":
+					{
+						"buffer_size": 7088,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								6414,
+								6414
+							]
+						],
+						"settings":
+						{
+							"BracketHighlighterBusy": false,
+							"bh_regions":
+							[
+								"bh_regex",
+								"bh_regex_center",
+								"bh_regex_open",
+								"bh_regex_close",
+								"bh_double_quote",
+								"bh_double_quote_center",
+								"bh_double_quote_open",
+								"bh_double_quote_close",
+								"bh_square",
+								"bh_square_center",
+								"bh_square_open",
+								"bh_square_close",
+								"bh_angle",
+								"bh_angle_center",
+								"bh_angle_open",
+								"bh_angle_close",
+								"bh_curly",
+								"bh_curly_center",
+								"bh_curly_open",
+								"bh_curly_close",
+								"bh_default",
+								"bh_default_center",
+								"bh_default_open",
+								"bh_default_close",
+								"bh_unmatched",
+								"bh_unmatched_center",
+								"bh_unmatched_open",
+								"bh_unmatched_close",
+								"bh_round",
+								"bh_round_center",
+								"bh_round_open",
+								"bh_round_close",
+								"bh_tag",
+								"bh_tag_center",
+								"bh_tag_open",
+								"bh_tag_close",
+								"bh_single_quote",
+								"bh_single_quote_center",
+								"bh_single_quote_open",
+								"bh_single_quote_close"
+							],
+							"codeintel": true,
+							"codeintel_config":
+							{
+								"JavaScript":
+								{
+									"codeintel_max_recursive_dir_depth": 2,
+									"codeintel_scan_files_in_project": false,
+									"javascriptExtraPaths":
+									[
+									]
+								},
+								"PHP":
+								{
+									"codeintel_max_recursive_dir_depth": 5,
+									"codeintel_scan_files_in_project": false,
+									"phpExtraPaths":
+									[
+									]
+								},
+								"Python":
+								{
+									"env":
+									{
+									}
+								}
+							},
+							"codeintel_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_live": true,
+							"codeintel_live_enabled_languages":
+							[
+								"JavaScript",
+								"Mason",
+								"XBL",
+								"XUL",
+								"RHTML",
+								"SCSS",
+								"Python",
+								"HTML",
+								"Ruby",
+								"Python3",
+								"XML",
+								"Sass",
+								"XSLT",
+								"Django",
+								"HTML5",
+								"Perl",
+								"CSS",
+								"Twig",
+								"Less",
+								"Smarty",
+								"Node.js",
+								"Tcl",
+								"TemplateToolkit",
+								"PHP"
+							],
+							"codeintel_max_recursive_dir_depth": 10,
+							"codeintel_scan_exclude_dir":
+							{
+								"JavaScript":
+								[
+									"/build/",
+									"/min/"
+								]
+							},
+							"codeintel_scan_files_in_project": true,
+							"codeintel_selected_catalogs":
+							[
+							],
+							"codeintel_snippets": true,
+							"codeintel_syntax_map":
+							{
+								"Python Django": "Python"
+							},
+							"sublime_auto_complete": true,
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 4895.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

@@ -99,19 +99,6 @@ class CollaborationCommand(ApplicationCommand, PsuedoFactory):
         return False
 
 
-class OpenLogView(CollaborationCommand):
-
-    """
-    Open the logging view for the colliberation plugin.
-    """
-
-    def run(self):
-        self.handler.open()
-
-    def is_enabled(self):
-        return True
-
-
 class ConnectToServer(CollaborationCommand):
 
     """
@@ -257,7 +244,8 @@ class AddDocument(CollaborationCommand):
     def add_document(self, document_name):
         add_packet = make_packet(
             'document_added',
-            document_id=2,
+            # Needs a better approach
+            document_id=hash(document_name),
             version=0,
             document_name=document_name
         )
