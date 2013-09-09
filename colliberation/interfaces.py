@@ -4,12 +4,67 @@ Interfaces defining base components required by colliberation.
 from zope.interface import Interface, Attribute
 
 
+class IWorkspace(Interface):
+
+    """ A collection of shared documents.
+
+    A workspace holds and manages data concerning a group of documents.
+    """
+
+    name = Attribute("Name of the workspace. May change during runtime.")
+    workspace_id = Attribute("Workspace ID. Must not change during runtime.")
+    metadata = Attribute("Dict-like object containing workspace metadata.")
+
+    def add_document(document):
+        """ Add the given document to the workspace.
+
+        :param Document document: A document object.
+        """
+
+    def remove_document(document):
+        """ Remove the given document from the workspace.
+
+        :param Document document: The document to remove.
+        """
+
+    def search_documents(filter_func, max_results=0):
+        """ Search for a number of documents using a filter function.
+
+        Searches for documents within the workspace for which the given filter
+        function indicates is true, returning at most the number of results
+        specified by max_results
+
+        The filter function will be called repeatedly with lists of documents
+        to search through. The filter function should return, each time it is
+        called, a list of True/False values corresponding to each document.
+
+        Since such a search may take significant amount of time, long enough to
+        block, a deferred is returned which will fire with a list of all
+        matching documents. If no matching documents are found, the deferred
+        will fire an empty list.
+
+        :param function filter_func: The function to use to filter documents.
+        :param int max_results: Maximum number of results to return. A value
+        less than 0 indicates that all results should be returned.
+
+        :returns: A deferred which will fire with a list of document objects.
+        """
+
+    def save():
+        """ Signals that the workspace will be saved.
+
+        This will be called by a serializer or other object before saving the
+        workspace, in order to notify the workspace that it is going to be
+        saved.
+        """
+
+
 class IDocument(Interface):
 
     """ A shared document being edited by multiple people.
 
     An object implementing IDocument represents a text based file supporting
-    advanced text manipulation techniques and multi-versioning.
+    text manipulation.
     """
 
     id = Attribute(""" Internal document ID.
@@ -26,7 +81,7 @@ class IDocument(Interface):
         document, as well as a label that the document may be referenced by
         when being saved and loaded from persistant storage. Unlike a
         document's id, a documents name may change during runtime, however it
-        should remain unchanged outside of .
+        should remain unchanged while in persistant storage.
 
         """)
 
@@ -46,58 +101,63 @@ class IDocument(Interface):
     def change_text(start, end, text):
         """ Insert or replace text into the document.
 
-        Inserts or replaces the given text into the document's content at the 
+        Inserts or replaces the given text into the document's content at the
         specified position.
 
         :param int start: Position to insert the text at in the document.
         :param str text: Text to insert into the document.
         """
 
-    def delete_text(position, text, version):
+    def delete_text(start, end):
         """ Delete text from the document.
 
         Deletes the given text from the document's content at the specified
         position. The given version specifies what version of document the text
         should be inserted into.
 
-        :param int position: Position to insert the text at in the document.
-        :param str text: Text to insert into the document.
-        :param str version: Version of the document to insert the text into.
+        :param int start: Start position of region to delete.
+        :param int end: End position of region to delete.
         """
 
-    def commit():
-        """ Commit any pending operations to the document's content.
+    def open():
+        """ 'Open' the document.
 
-        Commits any unprocessed operations to the document's content, possibly
-        changing the document's version in the process.
+        Signal to the document that it should prepare itself for being read
+        and written to. Returns a deferred that may be fired by the document
+        itself in order to signal to outside sources that it should be closed.
+
+        :returns: A deferred.
         """
 
-    def revert(version):
-        """ Revert the document's state to the specified version.
+    def close():
+        """ 'Close' the document.
 
-        Reverts the document's state to the given version raising
-        NoSuchVersion if the given document version cannot be found or used.
+        Note:
+            A document should never call its own close method. If the document
+            internals must close the document, they should fire the deferred.
 
-        :param int version: Version of the document to revert to.
-            Raises NoSuchVersion if the version specified cannot be found.
+        Signal to the document that it should commit any changes and wrap up
+        any internal state, before becoming inactive.
         """
 
-    def available_versions():
-        """ Retrieve a list of available versions of this document.
+    def save():
+        """ Signal to the document to save.
 
-        :returns: Returns a list of versions available to the document.
-            Any version on this list should be safe to use with rollback
+        Signal to the document that it is going to be saved to persistant
+        storage. This should be called by any serializer that wishes to save
+        the document, in order to notify the document that it is being saved.
         """
 
-    def retrieve_version_data(version):
-        """ Retrieves data associated with the document at that version.
+    def update(document):
+        """ Update the document to match the given document.
 
-        Returns a dictionary containing document data for the given version.
-        Raises NoSuchVersion if the specified version cannot be found or
-        accessed.
+        Updates this document's internals to match the given document's
+        internals.
 
-        :param int version: Version of the document to retrieve data from.
-            Raises NoSuchVersion if the version specified cannot be found.
+        Note:
+            This function should /never/ change the document's own ID.
+
+        :param Document document: The document to update to.
         """
 
 
