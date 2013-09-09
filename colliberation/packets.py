@@ -11,7 +11,8 @@ DUMP_ALL_PACKETS = False
 # Helper structures
 document_action = Struct('document_action',
                          UBInt32('document_id'),
-                         UBInt32('version')
+                         UBInt32('workspace_id'),
+                         UBInt32('hash')
                          )
 
 # Utility Action Packets
@@ -36,7 +37,6 @@ message = Struct('message',
 
 #: An error message
 error_packet = Struct('error',
-                      UBInt32('error_type'),
                       PascalString('message')
                       )
 
@@ -63,13 +63,16 @@ document_deleted = Struct('document_deleted',
                           Embed(document_action)
                           )
 
-#: Signals that a document has been added to the list of available documents
+#: Signals that a document has been (or should be) added to the list of
+#: available documents.
 document_added = Struct('document_added',
                         Embed(document_action),
-                        PascalString("document_name")
+                        PascalString("initial_name"),
+                        PascalString("initial_content"),
+                        PascalString("initial_url")
                         )
 
-#: Signals that a document has been renamed
+#: Signals that a document has been (or should be) renamed.
 name_modified = Struct('name_modified',
                        Embed(document_action),
                        PascalString('new_name')
@@ -77,14 +80,14 @@ name_modified = Struct('name_modified',
 
 # Document Content Action Packets
 
-#: Signals that text has been modified
+#: Signals that a document's text has been (or should be) modified.
 text_modified = Struct('text_modified',
                        Embed(document_action),
                        PascalString('modifications'),
                        PascalString('hash')
                        )
 
-#: Signals that document metadata has changed.
+#: Signals that a document's metadata has been (or should be) changed.
 metadata_modified = Struct('metadata_modified',
                            Embed(document_action),
                            PascalString('type'),
@@ -92,10 +95,40 @@ metadata_modified = Struct('metadata_modified',
                            PascalString('value'),
                            )
 
+#: Signals that a document's version has been (or should be) changed.
 version_modified = Struct('version_modified',
                           Embed(document_action),
                           UBInt32('new_version')
                           )
+
+# Workspace Packets
+
+#: Signals that a workspace has been (or should be) added.
+workspace_added = Struct('workspace_added',
+                         UBInt32('workspace_id'),
+                         PascalString('workspace_name')
+                         )
+
+#: Signals that a workspace has been (or should be) deleted.
+workspace_deleted = Struct('workspace_deleted',
+                           UBInt32('workspace_id'),
+                           )
+
+#: Signals that a workspace has been (or should be) opened.
+workspace_opened = Struct('workspace_opened',
+                          UBInt32('workspace_id'),
+                          )
+
+#: Signals that a workspace has been (or should be) closed.
+workspace_closed = Struct('workspace_closed',
+                          UBInt32('workspace_id'),
+                          )
+
+#: Signals that a workspace has been (or should be) renamed.
+workspace_renamed = Struct('workspace_renamed',
+                           UBInt32('workspace_id'),
+                           PascalString('new_name'),
+                           )
 
 
 #: Packet Header definitions

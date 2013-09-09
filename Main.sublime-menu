@@ -6,28 +6,64 @@
         "children":
         [
             {
-                "caption": "Connect to Server",
-                "command": "connect_to_server"
+                "caption": "Start Accepting Connections",
+                "command": "start_accepting_connections"
             },
             {
-                "caption": "Disconnect from Server",
-                "command": "disconnect_from_server"
+                "caption": "Stop Accepting Connections",
+                "command": "stop_accepting_connections"
             },
             {
-                "caption": "Add Shared Document",
-                "command": "add_document"
+                "caption": "Connect to Client",
+                "command": "connect_to_client"
             },
             {
-                "caption": "Create Shared Document",
-                "command": "create_document"
+                "caption": "Disconnect from Client",
+                "command": "disconnect_from_client"
             },
             {
-                "caption": "Delete Shared Document",
-                "command": "delete_document"
+                "caption": "Create Document...",
+                "children": 
+                [
+                    {
+                        "caption": "From New File",
+                        "command": "create_document_from_new_file"
+                    },
+                    {
+                        "caption": "From Existing File",
+                        "command": "create_document_from_existing_file"
+                    },
+                    {
+                        "caption": "From Current File",
+                        "command": "create_document_from_current_file"
+                    }
+                ]
             },
             {
-                "caption": "Rename Shared Document",
-                "command": "rename_document"
+                "caption": "Modify Document...",
+                "children": 
+                [
+                    {
+                        "caption": "Duplicate",
+                        "command": "duplicate_document"
+                    },
+                    {
+                        "caption": "Merge",
+                        "command": "merge_document"
+                    },
+                    {
+                        "caption": "Rename",
+                        "command": "rename_document"
+                    }
+                ]
+            },
+            {
+                "caption": "Remove Shared Document",
+                "command": "remove_document"
+            },
+            {
+                "caption": "View documents as project",
+                "command": "view_documents_as_project"
             },
             {
                 "caption": "List Shared Documents",
