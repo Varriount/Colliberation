@@ -7,9 +7,9 @@ from sublime_utils import current_view
 class SublimeClientFactory(CollabClientFactory):
     client_class = SublimeCollabProtocol
 
-    def __init__(self, hook):
+    def __init__(self):
         CollabClientFactory.__init__(self)
-        self.hook = hook
+        #self.hook = hook
 
     def startedConnecting(self, connector):
         view = current_view()
@@ -18,7 +18,7 @@ class SublimeClientFactory(CollabClientFactory):
                 'Collaboration',
                 'Started Connecting at {0}...'.format(connector)
             )
-        self.hook.startedConnecting(connector)
+        #self.hook.startedConnecting(connector)
 
     def clientConnectionFailed(self, connector, reason):
         view = current_view()
@@ -27,7 +27,7 @@ class SublimeClientFactory(CollabClientFactory):
                 'Collaboration',
                 'Connection failed at {0} - ({1})'.format(connector, reason)
             )
-        self.hook.clientConnectionFailed(connector, reason)
+        #self.hook.clientConnectionFailed(connector, reason)
 
     def clientConnectionLost(self, connector, reason):
         view = current_view()
@@ -37,7 +37,7 @@ class SublimeClientFactory(CollabClientFactory):
                 'Connection lost at {0} - ({1})'.format(connector, reason)
             )
 
-        self.hook.clientConnectionLost(connector, reason)
+        #self.hook.clientConnectionLost(connector, reason)
 
         destination = connector.getDestination()
         key = destination.host + str(destination.port)
