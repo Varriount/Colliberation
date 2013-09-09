@@ -1,5 +1,6 @@
 import sublime
 from sublime_plugin import all_callbacks
+from collections import deque
 
 
 def current_view():
@@ -104,8 +105,9 @@ class MultiPrompt(object):
     """
 
     def __init__(self, prompts, on_done, on_change, on_cancel,
-                 window=sublime.active_window):
-
+                 window=None):
+        if window is None:
+            window = sublime.active_window
         self.retrieve_window = window
         self.prompts = prompts
         self.results = []

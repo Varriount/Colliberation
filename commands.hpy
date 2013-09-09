@@ -30,9 +30,9 @@ install_twisted()
 # Now back to our regularly scheduled programming
 from colliberation.packets import make_packet
 from colliberation.sublime.factory import SublimeClientFactory
+from colliberation.server.factory import CollabServerFactory
 
 from sublime_utils import MultiPrompt
-# Commands
 
 
 class PsuedoFactory(object):
@@ -56,13 +56,14 @@ class PsuedoFactory(object):
         self.client = None
 
 
-class CollaborationCommand(ApplicationCommand, PsuedoFactory):
+class CollaborationCommand(ApplicationCommand):
 
     """
     Base class for collaboration commands.
     Provides utility functions and such.
     """
-    factory = SublimeClientFactory(PsuedoFactory)
+    MODE = None
+    client_factory = SublimeClientFactory(CollaborationCommand)
 
     def choose_file(self, callback=None):
         documents = self.client.available_docs
@@ -130,7 +131,7 @@ class ConnectToServer(CollaborationCommand):
             )
         else:
             # Send a connection request to the factory
-            deferred = self.factory.connect_to_server(address, port)
+            deferred = self.client_factory.connect_to_server(address, port)
             deferred.addCallback(self.set_client)
 
     def set_client(self, client):

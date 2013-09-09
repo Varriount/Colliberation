@@ -1,4 +1,4 @@
-#!/user/bin/python27
+#!python2
 # TODO
 # Expand Console Functions
 # Allow specifying port and 
@@ -21,8 +21,7 @@ from twisted.manhole.telnet import ShellFactory
 
 prof = None
 
-packets = {
-           }
+packets = {}
 
 
 def main():

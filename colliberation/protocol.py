@@ -48,10 +48,20 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
     def __init__(self, **kwargs):
         """ Set up the protocol.
 
-        This involves:
-            - Setting the timeout
-            - Creating the data buffer
-            - Setting the packet handlers
+        Setting up the protocol involves setting up control structures, such
+        as the packet handlers, and various connection specific settings,
+        such as the timeout period.
+
+        Note:
+            If overriding this method, subclasses are
+            *strongly* advised to use super() to call this method.
+
+        Arguments:
+            kwargs: Keyword arguments for protocol settings.
+            Valid Keys:
+                - 'factory' : The source factory that built the protocol
+                - 'address' : Address object representing the protocol's source
+                - 'timeout' : The timeout length.
 
         """
         self.setTimeout(kwargs.get('timeout', self.timeout_rate))
@@ -82,6 +92,14 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
         }
 
     def dataReceived(self, data):
+        """ Core event handler for incoming connection data.
+
+        This method handles all incoming data, parses it, and calls the
+        appropriate event handler with the parsed data.
+
+        Arguments:
+            data (str): Bytestring of incoming data.
+        """
         self.buffer += data
 
         packets, self.buffer = parse_packets(self.buffer)
@@ -97,54 +115,127 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
                 log(payload)
 
     def connectionMade(self):
+        """ Called when a connection is made with this protocol's source. """
         self.connected = True
 
     def connectionLost(self, reason):
+        """ Called when this protocol's host connection is lost, usually by
+        deliberate disconnection.
+
+        Arguments:
+            reason: Reason for the lost connection.
+        """
         self.connected = False
 
     def timeoutConnection(self):
+        """ Called when this protocol's host connection times out."""
         self.connected = False
 
     # Misc. event handlers
     def handshake_recieved(self, data):
+        """ Called when the protocol recieves a handshake packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.handshake
+        """
         raise NotImplementedError
 
     def ping_recieved(self, data):
+        """ Called when the protocol recieves a ping packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.ping
+        """
         raise NotImplementedError
 
     def message_recieved(self, data):
+        """ Called when the protocol recieves a message packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.message
+        """
         raise NotImplementedError
 
     def error_recieved(self, data):
+        """ Called when the protocol recieves an error packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.error
+        """
         raise NotImplementedError
 
     # Document event handlers
     def document_opened(self, data):
+        """ Called when the protocol recieves a document_opened packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.document_opened
+        """
         raise NotImplementedError
 
     def document_closed(self, data):
+        """ Called when the protocol recieves a document_closed packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.document_closed
+        """
         raise NotImplementedError
 
     def document_saved(self, data):
+        """ Called when the protocol recieves a document_saved packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.document_saved
+        """
         raise NotImplementedError
 
     def document_added(self, data):
+        """ Called when the protocol recieves a document_added packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.document_added
+        """
         raise NotImplementedError
 
     def document_deleted(self, data):
+        """ Called when the protocol recieves a document_deleted packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.document_deleted
+        """
         raise NotImplementedError
 
     def name_modified(self, data):
+        """ Called when the protocol recieves a name_modified packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.name_modified
+        """
         raise NotImplementedError
 
     # Document content event handlers
     def text_modified(self, data):
+        """ Called when the protocol recieves a text_modified packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.text_modified
+        """
         raise NotImplementedError
 
     def metadata_modified(self, data):
+        """ Called when the protocol recieves a metadata_modified packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.metadata_modified
+        """
         raise NotImplementedError
 
     def version_modified(self, data):
+        """ Called when the protocol recieves a version_modified packet.
+
+        Arguments:
+            data: Parsed packet data. See packets.version_modified
+        """
         raise NotImplementedError
 
 # Generic protocol implementation
@@ -157,6 +248,14 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     A colliberation client protocol mostly acts on orders from the server, only
     acting when it gets appropriate messages from the server, even if the
     orders are in reaction to a message it sent originally.
+
+    Currently, the specific class attributes are used to define what classes
+    are to be used by the protocol to fulfill certain functionality.
+    the various classes.
+    Template classes used by this class:
+    - doc_class (Document) : The document class to use.
+    - shadow_class (Document) : The shadow class to use.
+    - serializer_class : The serializer class to use.
     """
     # Template classes
     doc_class = Document
@@ -172,6 +271,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
     def __init__(self, **kwargs):
         BaseCollaborationProtocol.__init__(self, **kwargs)
+        
         # Document datas
         self.open_docs = kwargs.get('open_docs', {})  # id : Doc
         self.shadow_docs = kwargs.get('shadow_docs', {})
@@ -209,9 +309,10 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def connectionMade(self):
         """ Called when a connection is made.
 
-        The protocol starts the handshake process, sending information about
-        itself to the connecter. It then starts the pingback loop, which
-        maintains the connection.
+        In addition to the preparations made by
+        :ref:class:BaseCollaborationProtocol, the protocol starts the handshake
+        process, sending information about itself to the connecter.
+        It then starts the pingback loop, in order to maintain the connection.
         """
         ping_packet = make_packet('ping', id=0)
         self.ping_loop = LoopingCall(
@@ -228,19 +329,15 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         pass
 
     def handshake_recieved(self, data):
+        """ Responds to the handshake by setting the username and
+        authorization switch.
         """
-        If we are waiting, set the username.
-        Else, send error packet.
-        """
-
         if self.state == WAITING_FOR_AUTH:
             self.state = AUTHORIZED
             self.other_name = data.username
 
     def message_recieved(self, data, func_hooks=None):
-        """
-        Print message
-        """
+        """ Prints the recieved message to stdout. """
         if func_hooks is None:
             hooks = self.message_hooks
 
@@ -257,9 +354,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         return False
 
     def error_recieved(self, data, func_hooks=None):
-        """
-        Print message.
-        """
+        """ Prints the recieved error to stdout. """
         if func_hooks is None:
             hooks = self.error_hooks
 
@@ -277,17 +372,21 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
     # Document event handlers
     def document_opened(self, data, func_hooks=None):
-        """ Open a document.
+        """ Opens a document.
 
-        We retrieve the document object from available_docs to
-        open_documents, and create a shadow copy if one doesn't exist.
+        Retrieves the document object from self.available_docs to
+        self.open_documents, and creates a shadow copy, if one doesn't already
+        exist.
         """
+        # Preconditions
+        assert data.document_id in self.available_docs
+        assert data.document_id not in self.open_docs
+
         if func_hooks is None:
             hooks = self.doc_open_hooks
 
+        # Plugins
         document = self.available_docs[data.document_id]
-        shadow = self.shadow_class()
-        shadow.update(document)
         document = pipeline_funcs(
             hooks,
             document,
@@ -295,16 +394,21 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             can_cancel=True
         )
 
+        # Action
         if document is not None:
+            shadow = self.shadow_class()
+            shadow.update(document)
+
             self.open_docs[data.document_id] = document
             self.shadow_docs[data.document_id] = shadow
+
             d = document.open()
-            # TODO - Does shadow.open and close need to be called?
             d.addCallback(self.doc_callback)
             return True
         return False
 
     def doc_callback(self, document):
+        """ Callback for open_documents to signal that they've been closed. """
         p = make_packet('document_closed',
                         document_id=document.id,
                         version=document.version)
@@ -313,18 +417,17 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def document_closed(self, data, func_hooks=None):
         """ Close a document.
 
-        We remove the doc from open_docs and shadow_docs.
+        Removes the document from self.open_docs and self.shadow_docs.
         """
+        # Preconditions
+        assert data.document_id in self.available_docs
+        assert data.document_id in self.open_docs
+        assert data.document_id in self.shadow_docs
         if func_hooks is None:
             hooks = self.doc_close_hooks
-        if data.document_id not in self.open_docs:
-            log(
-                DOC_NOT_OPEN.format(data.document_id)
-            )
-            return
 
         document = self.open_docs.pop(data.document_id)
-        self.shadow_docs.pop(data.document_id)
+        shadow = self.shadow_docs.pop(data.document_id)
         document = pipeline_funcs(
             hooks,
             document,
@@ -341,7 +444,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def document_saved(self, data, func_hooks=None):
         """ Save a document
 
-        We try calling the serializer on the selected document.
+        Calls the serializer on the selected document.
         """
         if func_hooks is None:
             hooks = self.doc_save_hooks
@@ -366,8 +469,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def document_added(self, data, func_hooks=None):
         """ Add a document.
 
-        Create and add a new document to the available document list,
-        raising a warning if the document already exists.
+        Creates and adds a new document to self.available_docs, raising a
+        warning if the document already exists.
         """
         if func_hooks is None:
             hooks = self.doc_add_hooks
@@ -392,8 +495,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def document_deleted(self, data, func_hooks=None):
         """ Delete a document.
 
-        If it's a document we have open,and close it.
-        Remove the document from the available documents list.
+        Closes the indicated document, and then removes it from
+        self.available_docs.
         """
         self.document_closed(data)
         if data.document_id in self.available_docs:
@@ -410,8 +513,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def name_modified(self, data):
         """ Rename a document.
 
-        Find the document in open_docs or available_docs, and modify it's
-        name variable, raising a warning if the document cannot be found.
+        Finds document in open_docs or available_docs and modifies it's name,
+        raising a warning if the document cannot be found.
         """
         if data.document_id not in self.available_docs:
             log(
