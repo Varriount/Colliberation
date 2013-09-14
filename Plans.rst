@@ -7,6 +7,12 @@ Enable client to use
 
 NOTE - THE INFORMATION BELOW CONTAINS PLANS, WHICH MAY OR MAY NOT BE IMPLEMENTED
 
+Git Conventions
+---------------
+	Branches
+		- Create a branch for each major change/goal.
+		- Use the format <core element>/<action>/... for branch names.
+
 -----------
 Unit Tests
 -----------

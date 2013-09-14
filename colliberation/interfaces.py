@@ -12,22 +12,22 @@ class IWorkspace(Interface):
     """
 
     name = Attribute("Name of the workspace. May change during runtime.")
-    workspace_id = Attribute("Workspace ID. Must not change during runtime.")
+    id = Attribute("Workspace ID. Must not change during runtime.")
     metadata = Attribute("Dict-like object containing workspace metadata.")
 
     def add_document(document):
         """ Add the given document to the workspace.
 
-        :param Document document: A document object.
+        :param Document document: The document object to add
         """
 
-    def remove_document(document):
+    def remove_document(document_id):
         """ Remove the given document from the workspace.
 
-        :param Document document: The document to remove.
+        :param int document_id: The id of the document to remove.
         """
 
-    def search_documents(filter_func, max_results=0):
+    def search_for_documents(filter_func, max_results=0):
         """ Search for a number of documents using a filter function.
 
         Searches for documents within the workspace for which the given filter
@@ -39,15 +39,15 @@ class IWorkspace(Interface):
         called, a list of True/False values corresponding to each document.
 
         Since such a search may take significant amount of time, long enough to
-        block, a deferred is returned which will fire with a list of all
-        matching documents. If no matching documents are found, the deferred
-        will fire an empty list.
+        block, an iterable/generator should be returned which will produce the
+        next search result each iteration. Each iteration should take as little
+        time as possible to return the next result.
 
         :param function filter_func: The function to use to filter documents.
         :param int max_results: Maximum number of results to return. A value
         less than 0 indicates that all results should be returned.
 
-        :returns: A deferred which will fire with a list of document objects.
+        :returns: An iterable/generator containing the results.
         """
 
     def save():
@@ -56,6 +56,14 @@ class IWorkspace(Interface):
         This will be called by a serializer or other object before saving the
         workspace, in order to notify the workspace that it is going to be
         saved.
+        """
+
+    def load():
+        """
+        Signals that this workspace will be loaded.
+
+        This method will be called to indicate that the workspace is
+        about to be loaded.
         """
 
 

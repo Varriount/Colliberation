@@ -421,8 +421,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         """ Callback for open_documents to signal that they've been closed. """
         p = make_packet('document_closed',
                         document_id=document.id,
-                        version=document.version,
-                        workspace_id=document.workspace_id)
+                        hash=document.version,
+                        workspace_id=document.id)
         self.transport.write(p)
 
     def document_closed(self, data, func_hooks=None):

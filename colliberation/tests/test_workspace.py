@@ -55,14 +55,15 @@ class WorkspaceTest(TestCase):
         assertTrue = self.assertTrue
         document_id = MOCK_DOCUMENT.id
         workspace = self.workspace
+        searchfunc = lambda d: (d.id == document_id)
 
         workspace.add_document(MOCK_DOCUMENT)
-        results = workspace.search(document_id=document_id)
+        results = list(workspace.search_for_documents(searchfunc))
         assertTrue(len(results) == 1)
-        assertTrue(results[1] == MOCK_DOCUMENT)
+        assertTrue(results[0] == MOCK_DOCUMENT)
 
-        workspace.remove_document(MOCK_DOCUMENT)
-        results = workspace.search(document_id=document_id)
+        workspace.remove_document(document_id)
+        results = list(workspace.search_for_documents(searchfunc))
         assertTrue(len(results) == 0)
 
     def test_workspace_remove_invalid_document(self):
@@ -73,7 +74,7 @@ class WorkspaceTest(TestCase):
         self.assertRaises(
             KeyError,
             self.workspace.remove_document,
-            id=20
+            document_id=20
         )
 
     def test_workspace_save(self):
