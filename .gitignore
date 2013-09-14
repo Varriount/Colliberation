@@ -16,7 +16,6 @@ var
 sdist
 develop-eggs
 .installed.cfg
-lib64
 
 # Installer logs
 pip-log.txt
@@ -33,6 +32,5 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
-coliberation.sublime-workspace
-coliberation.sublime-workspace
-coliberation.sublime-workspace
+dropin.cache
+*.sublime-workspace

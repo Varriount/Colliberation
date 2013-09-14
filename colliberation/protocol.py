@@ -4,6 +4,7 @@ from twisted.protocols.policies import TimeoutMixin
 from twisted.internet.task import LoopingCall
 
 from colliberation.packets import parse_packets, make_packet
+from colliberation.workspace import Workspace
 from colliberation.document import Document
 from colliberation.serializer import DiskSerializer
 from colliberation.utils import pipeline_funcs
@@ -25,7 +26,7 @@ AUTHORIZED = 2
 DOC_NOT_AVAILABLE = 'Document with ID {0} is not available.'
 DOC_NOT_OPEN = 'Document with ID {0} is not open.'
 
-DEBUG = True
+DEBUG = False
 
 
 def log(text):
@@ -126,10 +127,12 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
             reason: Reason for the lost connection.
         """
         self.connected = False
+        self.cleanup(self)
 
     def timeoutConnection(self):
         """ Called when this protocol's host connection times out."""
         self.connected = False
+        self.cleanup(self)
 
     # Misc. event handlers
     def handshake_recieved(self, data):
@@ -252,12 +255,12 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     Currently, the specific class attributes are used to define what classes
     are to be used by the protocol to fulfill certain functionality.
     the various classes.
-    Template classes used by this class:
-    - doc_class (Document) : The document class to use.
-    - shadow_class (Document) : The shadow class to use.
-    - serializer_class : The serializer class to use.
     """
+
     # Template classes
+    workspace_class = Workspace
+
+    # Leave these as None to use default document
     doc_class = Document
     shadow_class = Document
     serializer_class = DiskSerializer
@@ -271,7 +274,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
     def __init__(self, **kwargs):
         BaseCollaborationProtocol.__init__(self, **kwargs)
-        
+
         # Document datas
         self.open_docs = kwargs.get('open_docs', {})  # id : Doc
         self.shadow_docs = kwargs.get('shadow_docs', {})
@@ -323,6 +326,13 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
         packet = make_packet('handshake', username=self.username)
         self.transport.write(packet)
+
+    def cleanup(self):
+        """
+        Cleanup a the protocol's resources.
+        """
+        self.ping_loop.stop()
+        self.ping_loop = None
 
     # Misc. event handlers
     def ping_recieved(self, data):
@@ -411,7 +421,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         """ Callback for open_documents to signal that they've been closed. """
         p = make_packet('document_closed',
                         document_id=document.id,
-                        version=document.version)
+                        version=document.version,
+                        workspace_id=document.workspace_id)
         self.transport.write(p)
 
     def document_closed(self, data, func_hooks=None):
@@ -605,8 +616,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             metadata = pipeline_funcs(
                 hooks,
                 document,
-                cancellable=True,
-                stoppable=True
+                can_cancel=True,
+                can_stop=True
             )
             document.metadata[data.key] = data.value
 

@@ -43,6 +43,7 @@ class WorkspaceTest(TestCase):
         Search for documents
         Match given results to expected results.
         """
+        self.fail("Not Implemented")
 
     def test_workspace_add_remove(self):
         """

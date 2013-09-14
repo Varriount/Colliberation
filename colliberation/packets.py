@@ -228,8 +228,7 @@ def make_packet(packet, *args, **kwargs):
     """
 
     if packet not in packets_by_name:
-        print("Couldn't find packet name %s!" % packet)
-        return ""
+        raise KeyError("Couldn't find packet name {0}!".format(packet))
 
     header = packets_by_name[packet]
 
@@ -243,6 +242,5 @@ def make_packet(packet, *args, **kwargs):
     try:
         payload = packets[header].build(container)
     except AttributeError:
-        print('Parameter not specified!')
         raise
     return chr(header) + payload

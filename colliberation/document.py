@@ -5,7 +5,7 @@ from zope.interface import implements
 DOC_TEXT_CHANGE_LOG = 'Changing document text at {0}:{1} to "{2}"'
 DOC_TEXT_DELETED_LOG = 'Deleting document text at {0}:{1}'
 
-DEBUG = True
+DEBUG = False
 
 
 def log(text):
@@ -23,6 +23,7 @@ class Document(object):
     implements(IDocument)
 
     state_deferral = None
+    is_open = False
 
     def __init__(self, **kwargs):
         """Initialize the document with the given data.
@@ -36,6 +37,19 @@ class Document(object):
         self.version = kwargs.get('version', 0)
         self.url = kwargs.get('url', '')
         self.metadata = kwargs.get('metadata', dict())
+
+    def __eq__(self, other):
+        if type(other) == type(self):
+            return (
+                self.id == other.id and
+                self.name == other.name and
+                self.content == other.content and
+                self.version == other.version and
+                self.url == other.url and
+                self.metadata == other.metadata
+                )
+        else:
+            return False
 
     def change_text(self, start, end, text):
         """Change (Replace or insert) a document's content.

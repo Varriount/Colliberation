@@ -20,11 +20,9 @@ class CollaborationProtocolTest(TestCase):
     def test_init(self):
         self.assertEqual(self.protocol.open_docs, {})
         self.assertEqual(self.protocol.available_docs, {})
-        self.assertEqual(
-            self.protocol.state, WAITING_FOR_AUTH)
-        print(type(self.protocol.username))
-        self.assertEqual(
-            self.protocol.username, '')
+        self.assertEqual(self.protocol.state, WAITING_FOR_AUTH)
+
+        self.assertEqual(self.protocol.username, '')
         self.assertEqual(self.protocol.ping_loop, None)
 
     def test_connectionMade(self):
