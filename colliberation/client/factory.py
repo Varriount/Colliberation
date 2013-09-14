@@ -2,7 +2,7 @@ from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 
-from colliberation.client.protocol import CollabClientProtocol
+from colliberation.protocol import CollaborationProtocol
 
 
 class CollabClientFactory(ReconnectingClientFactory):

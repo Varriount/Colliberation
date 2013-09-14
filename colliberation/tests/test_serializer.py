@@ -40,6 +40,7 @@ class Serializer_Test(TestCase):
         file.close()
         data = self.serializer.load_document(self.url)
 
+
         self.assertEqual(
             data, self.data, 'Loaded data did not match test data.')
 
