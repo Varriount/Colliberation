@@ -1,6 +1,7 @@
 from zope.interface import implements
 from colliberation.interfaces import IWorkspace
-from itertools import ifilter, islice
+from itertools import ifilter, islice, imap
+from operator import eq as operator_eq
 
 
 class Workspace(object):
@@ -30,3 +31,29 @@ class Workspace(object):
 
     def load(self):
         pass
+
+# Common key function for finding documents
+
+
+def with_attributes(**attributes):
+    """ Generate a function attribute-matching generator
+
+    Constructs a generator which evaluates what objects in a given container
+    have attributes with values matching the ones specified.
+
+    Arguments
+        attributes: Keyword parameters specifying attribute names and values.
+    """
+    # Note, container type of 'values' MUST equal container type
+    # returned by 'get_attributes'
+    keys = tuple(attributes.iterkeys())
+    values = tuple(attributes.itervalues())
+    get_attributes = attrgetter(*keys)
+
+    def match(documents):
+        document_attributes = imap(get_attributes, documents)
+        result_iterable = imap(operator_eq, document_attributes, repeat(values))
+        for result in result_iterable:
+            yield result
+
+    return match

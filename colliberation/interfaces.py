@@ -34,14 +34,15 @@ class IWorkspace(Interface):
         function indicates is true, returning at most the number of results
         specified by max_results
 
-        The filter function will be called repeatedly with lists of documents
-        to search through. The filter function should return, each time it is
-        called, a list of True/False values corresponding to each document.
-
         Since such a search may take significant amount of time, long enough to
-        block, an iterable/generator should be returned which will produce the
+        block, an iterable/generator is returned which will produce the
         next search result each iteration. Each iteration should take as little
         time as possible to return the next result.
+
+        The filter function will be called repeatedly with an iterable of
+        documents to search through. The filter function should return,
+        each time it is called, an iterable of True/False values corresponding
+        to each document.
 
         :param function filter_func: The function to use to filter documents.
         :param int max_results: Maximum number of results to return. A value
