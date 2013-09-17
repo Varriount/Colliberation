@@ -9,6 +9,7 @@ from colliberation.document import Document
 from colliberation.serializer import DiskSerializer
 from colliberation.utils import pipeline_funcs
 
+from options import Options
 from diff_match_patch import diff_match_patch as DMP
 
 flexible_dmp = DMP()
@@ -34,14 +35,15 @@ def log(text):
 
 class BaseCollaborationProtocol(Protocol, TimeoutMixin):
 
-    """ A symmetric protocol used by collaboration clients
-    and servers.
+    """ A symmetric protocol used by collaboration clients and servers.
 
-    This class serves as a skeletion, only implementing the core
-    event handlers and hooks.
+    This is a skeletion class, only implementing the core event
+    handlers and hooks.
     """
-    timeout_rate = 60
-    send_delay = .25
+    options = Options(
+        timeout_rate=60,
+        send_delay=.25
+    )
     connected = False
 
     def __init__(self, **kwargs):
@@ -63,10 +65,11 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
                 - 'timeout' : The timeout length.
 
         """
-        self.setTimeout(kwargs.get('timeout', self.timeout_rate))
+        self.options.push(kwargs)
         self.factory = kwargs.get('factory', None)
         self.address = kwargs.get('address', None)
 
+        self.setTimeout(self.options.timeout_rate)
         self.buffer = ""
 
         self.packet_handlers = {
@@ -256,77 +259,80 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     """
 
     # Template classes
-    workspace_class = Workspace
-    doc_class = Document
-    shadow_class = Document
-    serializer_class = DiskSerializer
+    options = BaseCollaborationProtocol.options.add(
+        username='',
+        password='',
+        latest_id=0,
+        ping_loop=None,
+    )
 
-    # Default settings
-    username = ''
-    password = ''
+    source_classes = Options(
+        workspace=Workspace,
+        document=Document,
+        shadow_doc=Document,
+        serializer=DiskSerializer
+    )
 
-    # ID
-    latest_id = 0
+    # Event Hooks
+    hooks = Options(
+        message_hooks=[],
+        error_hooks=[],
+
+        # Document hooks
+        doc_add_hooks=[],
+        doc_delete_hooks=[],
+        doc_save_hooks=[],
+        doc_open_hooks=[],
+        doc_close_hooks=[],
+
+        # Document content hooks
+        text_mod_hooks=[],
+        name_mod_hooks=[],
+        metadata_mod_hooks=[],
+        version_mod_hooks=[],
+    )
 
     def __init__(self, **kwargs):
         BaseCollaborationProtocol.__init__(self, **kwargs)
 
+        # Configuration Sets
+        self.source_classes.push(kwargs)
+        self.hooks.push(kwargs)
+        self.options.push(kwargs)
+
         # Document datas
-        self.open_docs = kwargs.get('open_docs', {})  # id : Doc
-        self.shadow_docs = kwargs.get('shadow_docs', {})
-        self.workspaces = kwargs.get('workspaces', {})
+        self.open_docs = kwargs.get('open_docs', {})
+        self.shadow_docs = kwargs.get('open_docs', {})
+        self.workspaces = kwargs.get('open_docs', {})
         self.current_workspace = kwargs.get('current_workspace', None)
 
         # Internal objects
-        self.serializer = self.serializer_class()
+        self.serializer = self.source_classes.serializer()
 
         # Client information
         self.state = WAITING_FOR_AUTH
-
-        # Start pinging server to maintain connection
-        self.ping_loop = None
-
-        # Setup hooks
-
-        # Message hooks
-        self.message_hooks = kwargs.get('message_hooks', [])
-        self.error_hooks = kwargs.get('error_hooks', [])
-
-        # Document hooks
-        self.doc_add_hooks = kwargs.get('doc_add_hooks', [])
-        self.doc_delete_hooks = kwargs.get('doc_delete_hooks', [])
-        self.doc_save_hooks = kwargs.get('doc_save_hooks', [])
-        self.doc_open_hooks = kwargs.get('doc_open_hooks', [])
-        self.doc_close_hooks = kwargs.get('doc_close_hooks', [])
-
-        # Document content hooks
-        self.text_mod_hooks = kwargs.get('text_mod_hooks', [])
-        self.name_mod_hooks = kwargs.get('name_mod_hooks', [])
-        self.metadata_mod_hooks = kwargs.get('metadata_mod_hooks', [])
-        self.version_mod_hooks = kwargs.get('version_mod_hooks', [])
 
     # Protocol Event Handlers
     def connectionMade(self):
         """ Called when a connection is made.
 
         In addition to the preparations made by
-        :ref:class:BaseCollaborationProtocol, the protocol starts the handshake
-        process, sending information about itself to the connecter.
+        `BaseCollaborationProtocol`, the protocol starts the handshake
+        procss, sending information about itself to the connecter.
         It then starts the pingback loop, in order to maintain the connection.
         """
-        ping_packet = make_packet('ping', id=0)
         self.ping_loop = LoopingCall(
             self.transport.write,
-            ping_packet
+            make_packet('ping', id=0)
         )
-        self.ping_loop.start(self.timeout_rate)
+        self.ping_loop.start(self.options.timeout_rate)
 
-        packet = make_packet('handshake', username=self.username)
+        packet = make_packet('handshake', username=self.options.username)
         self.transport.write(packet)
 
     def cleanup(self):
         """
-        Cleanup a the protocol's resources.
+        Cleanup the protocol's resources.
         """
         self.ping_loop.stop()
         self.ping_loop = None
@@ -346,15 +352,15 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def message_recieved(self, data, func_hooks=None):
         """ Prints the recieved message to stdout. """
         if func_hooks is None:
-            hooks = self.message_hooks
+            hooks = self.hooks.message_hooks
 
-        message = data.message
         message = pipeline_funcs(
             hooks,
-            message,
+            data.message,
             can_stop=True,
             can_cancel=True
         )
+
         if message is not None:
             log(message)
             return True
@@ -363,15 +369,15 @@ class CollaborationProtocol(BaseCollaborationProtocol):
     def error_recieved(self, data, func_hooks=None):
         """ Prints the recieved error to stdout. """
         if func_hooks is None:
-            hooks = self.error_hooks
+            hooks = self.hooks.error_hooks
 
-        message = data.message
         message = pipeline_funcs(
             hooks,
-            message,
+            data.message,
             can_stop=True,
             can_cancel=True
         )
+
         if message is not None:
             log(message)
             return True
@@ -385,9 +391,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         self.open_documents, and creates a shadow copy, if one doesn't already
         exist.
         """
-
         if func_hooks is None:
-            hooks = self.doc_open_hooks
+            hooks = self.hooks.doc_open_hooks
 
         # Plugins
         document = self.current_workspace.retrieve_document(data.document_id)
@@ -401,7 +406,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
         # Action
         if document is not None:
-            shadow = self.shadow_class()
+            shadow = self.source_classes.shadow_doc()
             shadow.update(document)
 
             self.open_docs[data.document_id] = document
@@ -414,11 +419,11 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
     def doc_callback(self, document):
         """ Callback for open_documents to signal that they've been closed. """
-        p = make_packet('document_closed',
-                        document_id=document.id,
-                        hash=document.version,
-                        workspace_id=document.id)
-        self.transport.write(p)
+        data = make_packet('document_closed',
+                           document_id=document.id,
+                           hash=document.version,
+                           workspace_id=document.id)
+        self.transport.write(data)
 
     def document_closed(self, data, func_hooks=None):
         """ Close a document.
@@ -426,22 +431,23 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         Removes the document from self.open_docs and self.shadow_docs.
         """
         # Preconditions
-        assert data.document_id in self.open_docs
-        assert data.document_id in self.shadow_docs
         if func_hooks is None:
-            hooks = self.doc_close_hooks
+            hooks = self.hooks.doc_close_hooks
 
         document = self.open_docs.pop(data.document_id)
         self.shadow_docs.pop(data.document_id)
+
         document = pipeline_funcs(
             hooks,
             document,
             can_stop=True,
             can_cancel=True
         )
-        document.close()
 
-        return (document is not None)
+        if document is not None:
+            document.close()
+            return True
+        return False
 
     def document_saved(self, data, func_hooks=None):
         """ Save a document
@@ -449,12 +455,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         Calls the serializer on the selected document.
         """
         if func_hooks is None:
-            hooks = self.doc_save_hooks
-        if data.document_id not in self.open_docs:
-            log(
-                DOC_NOT_OPEN.format(data.document_id)
-            )
-            return
+            hooks = self.hooks.doc_save_hooks
 
         document = self.open_docs[data.document_id]
         document = pipeline_funcs(
@@ -463,6 +464,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
             can_stop=True,
             can_cancel=True
         )
+
         if document is not None:
             self.serializer.save_document(document)
             return True
@@ -475,17 +477,21 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         warning if the document already exists.
         """
         if func_hooks is None:
-            hooks = self.doc_add_hooks
+            hooks = self.hooks.doc_add_hooks
 
-        document = self.doc_class(id=data.document_id,
-                                  version=data.version,
-                                  name=data.document_name)
+        document = self.source_classes.document(
+            id=data.document_id,
+            version=data.version,
+            name=data.document_name
+        )
+
         document = pipeline_funcs(
             hooks,
             document,
             can_stop=True,
             can_cancel=True
         )
+
         if document is not None:
             self.current_workspace.add_document(document)
             return True
@@ -524,11 +530,6 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         documents content.
         This event handler is unique in that it sends data back to the caller.
         """
-        if data.document_id not in self.open_docs:
-            log(
-                DOC_NOT_OPEN.format(data.document_id)
-            )
-            return
 
         log('{0}: Recieved text modifications:'.format(self))
         log(data.modifications)
@@ -563,7 +564,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         log(mods)
 
         reactor.callLater(
-            self.send_delay,
+            self.options.send_delay,
             self.transport.write,
             make_packet(
                 'text_modified',
@@ -578,33 +579,21 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         """
         Modify the metadata in the specified document.
         """
-        if data.document_id not in self.open_docs:
-            log(
-                DOC_NOT_OPEN.format(data.document_id)
-            )
-            return
-
         if func_hooks is None:
-            hooks = self.metadata_mod_hooks
+            hooks = self.hooks.metadata_mod_hooks
 
-        if data.document_id not in self.open_docs:
-            self._warn_doc_not_open(data.document_id)
-        else:
-            document = self.open_docs[data.document_id]
-            metadata = pipeline_funcs(
-                hooks,
-                document,
-                can_cancel=True,
-                can_stop=True
-            )
-            document.metadata[data.key] = data.value
+        document = self.open_docs[data.document_id]
+        metadata = pipeline_funcs(
+            hooks,
+            document,
+            can_cancel=True,
+            can_stop=True
+        )
+        document.metadata[data.key] = data.value
 
-    def version_modified(self, data):
-        if data.document_id not in self.open_docs:
-            log(
-                DOC_NOT_OPEN.format(data.document_id)
-            )
-            return
+    def version_modified(self, data, func_hooks=None):
+        if func_hooks is None:
+            hooks = self.hooks.version_mod_hooks
 
         document = self.open_docs[data.document_id]
         document.version = data.version
