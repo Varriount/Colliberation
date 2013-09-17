@@ -12,7 +12,7 @@ class CollabClientFactory(ReconnectingClientFactory):
     """
 
     nextid = 0
-    client_class = CollabClientProtocol
+    client_class = CollaborationProtocol
 
     def __init__(self):
         self.protocols = dict()

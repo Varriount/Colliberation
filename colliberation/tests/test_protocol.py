@@ -6,6 +6,7 @@ from colliberation.tests.utils import FakeTransport, generate_packets
 from twisted.internet.task import LoopingCall
 from colliberation.protocol import (CollaborationProtocol,
                                     WAITING_FOR_AUTH, AUTHORIZED)
+from colliberation.workspace import Workspace
 from mock import MagicMock
 
 
@@ -13,13 +14,15 @@ class CollaborationProtocolTest(TestCase):
 
     def setUp(self):
         self.transport = FakeTransport()
-        self.protocol = CollaborationProtocol()
+        workspace = Workspace()
+        self.protocol = CollaborationProtocol(current_workspace=workspace)
         self.protocol.transport = self.transport
         self.packets = generate_packets()
 
     def test_init(self):
         self.assertEqual(self.protocol.open_docs, {})
-        self.assertEqual(self.protocol.available_docs, {})
+        self.assertEqual(self.protocol.workspaces, {})
+        self.assertIsInstance(self.protocol.current_workspace, Workspace)
         self.assertEqual(self.protocol.state, WAITING_FOR_AUTH)
 
         self.assertEqual(self.protocol.username, '')
@@ -110,4 +113,5 @@ class CollaborationProtocolTest(TestCase):
         return self.protocol.open_docs[self.packets['document_id']]
 
     def get_available_doc(self):
-        return self.protocol.available_docs[self.packets['document_id']]
+        return self.protocol.current_workspace.retrieve_document(
+            self.packets['document_id'])

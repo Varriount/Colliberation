@@ -1,23 +1,26 @@
 from zope.interface import implements
 from colliberation.interfaces import IWorkspace
-from itertools import ifilter, islice, imap
-from operator import eq as operator_eq
+from itertools import ifilter, islice, imap, repeat
+import operator
 
 
 class Workspace(object):
     implements(IWorkspace)
 
-    def __init__(self, name, id, metadata):
-        self.name = name
-        self.id = id
-        self.metadata = metadata
-        self.documents = {}
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('name', '')
+        self.id = kwargs.get('id', 0)
+        self.metadata = kwargs.get('metadata', {})
+        self.documents = kwargs.get('documents', {})
 
     def add_document(self, document):
         self.documents[document.id] = document
 
     def remove_document(self, document_id):
         del(self.documents[document_id])
+
+    def retrieve_document(self, document_id):
+        return self.documents[document_id]
 
     def search_for_documents(self, filter_func, max_results=None):
         iterable = islice(
@@ -48,11 +51,13 @@ def with_attributes(**attributes):
     # returned by 'get_attributes'
     keys = tuple(attributes.iterkeys())
     values = tuple(attributes.itervalues())
-    get_attributes = attrgetter(*keys)
+    get_attributes = operator.attrgetter(*keys)
+
+    fill_values = repeat(values)
 
     def match(documents):
-        document_attributes = imap(get_attributes, documents)
-        result_iterable = imap(operator_eq, document_attributes, repeat(values))
+        doc_attributes = imap(get_attributes, documents)
+        result_iterable = imap(operator.eq, doc_attributes, fill_values)
         for result in result_iterable:
             yield result
 

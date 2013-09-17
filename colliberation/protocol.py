@@ -11,8 +11,6 @@ from colliberation.utils import pipeline_funcs
 
 from diff_match_patch import diff_match_patch as DMP
 
-from warnings import warn
-
 flexible_dmp = DMP()
 fragile_dmp = DMP()
 fragile_dmp.Match_Threshold = 0.0
@@ -259,8 +257,6 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
     # Template classes
     workspace_class = Workspace
-
-    # Leave these as None to use default document
     doc_class = Document
     shadow_class = Document
     serializer_class = DiskSerializer
@@ -278,7 +274,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         # Document datas
         self.open_docs = kwargs.get('open_docs', {})  # id : Doc
         self.shadow_docs = kwargs.get('shadow_docs', {})
-        self.available_docs = kwargs.get('available_docs', {})  # id : Doc
+        self.workspaces = kwargs.get('workspaces', {})
+        self.current_workspace = kwargs.get('current_workspace', None)
 
         # Internal objects
         self.serializer = self.serializer_class()
@@ -388,15 +385,13 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         self.open_documents, and creates a shadow copy, if one doesn't already
         exist.
         """
-        # Preconditions
-        assert data.document_id in self.available_docs
-        assert data.document_id not in self.open_docs
 
         if func_hooks is None:
             hooks = self.doc_open_hooks
 
         # Plugins
-        document = self.available_docs[data.document_id]
+        document = self.current_workspace.retrieve_document(data.document_id)
+
         document = pipeline_funcs(
             hooks,
             document,
@@ -431,14 +426,13 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         Removes the document from self.open_docs and self.shadow_docs.
         """
         # Preconditions
-        assert data.document_id in self.available_docs
         assert data.document_id in self.open_docs
         assert data.document_id in self.shadow_docs
         if func_hooks is None:
             hooks = self.doc_close_hooks
 
         document = self.open_docs.pop(data.document_id)
-        shadow = self.shadow_docs.pop(data.document_id)
+        self.shadow_docs.pop(data.document_id)
         document = pipeline_funcs(
             hooks,
             document,
@@ -447,10 +441,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         )
         document.close()
 
-        if document is not None:
-            self.available_docs[data.document_id] = document
-            return True
-        return False
+        return (document is not None)
 
     def document_saved(self, data, func_hooks=None):
         """ Save a document
@@ -486,21 +477,18 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         if func_hooks is None:
             hooks = self.doc_add_hooks
 
-        if data.document_id in self.available_docs:
-            warn('Document {0} already exists'.format(data.document_id))
-        else:
-            document = self.doc_class(id=data.document_id,
-                                      version=data.version,
-                                      name=data.document_name)
-            document = pipeline_funcs(
-                hooks,
-                document,
-                can_stop=True,
-                can_cancel=True
-            )
-            if document is not None:
-                self.available_docs[data.document_id] = document
-                return True
+        document = self.doc_class(id=data.document_id,
+                                  version=data.version,
+                                  name=data.document_name)
+        document = pipeline_funcs(
+            hooks,
+            document,
+            can_stop=True,
+            can_cancel=True
+        )
+        if document is not None:
+            self.current_workspace.add_document(document)
+            return True
         return False
 
     def document_deleted(self, data, func_hooks=None):
@@ -510,12 +498,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         self.available_docs.
         """
         self.document_closed(data)
-        if data.document_id in self.available_docs:
-            del(self.available_docs[data.document_id])
-        else:
-            log(
-                DOC_NOT_AVAILABLE.format(data.document_id)
-            )
+        self.current_workspace.remove_document(data.document_id)
 
     # Document content event handlers.
     # These handlers send data back to sender based on whether they
@@ -527,13 +510,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         Finds document in open_docs or available_docs and modifies it's name,
         raising a warning if the document cannot be found.
         """
-        if data.document_id not in self.available_docs:
-            log(
-                DOC_NOT_AVAILABLE.format(data.document_id)
-            )
-            return
 
-        document = self.available_docs[data.document_id]
+        document = self.current_workspace.retrieve_document(data.document_id)
         document.name = data.new_name
 
     def text_modified(self, data):

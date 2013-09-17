@@ -30,13 +30,14 @@ from sublime_utils import install_twisted
 install_twisted()
 
 # Now back to our regularly scheduled programming
-from colliberation.packets import make_packet
 from colliberation.sublime.factory import SublimeClientFactory
 from colliberation.server.factory import CollabServerFactory
+from colliberation.client.factory import CollabClientFactory
 
 from sublime_utils import MultiPrompt
 
 from attach import attach_handle
+from copy import copy
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
@@ -63,6 +64,7 @@ MODE = None
 
 def wrap_protocol(protocol):
     global CLIENT_CONNECTION, SERVER_CONNECTION
+    protocol = copy(protocol)
     connectionLost_original = protocol.connectionLost
 
     @functools.wraps
@@ -74,6 +76,7 @@ def wrap_protocol(protocol):
             SERVER_CONNECTION = None
         connectionLost_original(self, reason)
     protocol.connectionLost = _connectionLost
+    return protocol
 
 
 def choose_file(document_dict, callback=None):
@@ -113,9 +116,10 @@ def choose_available_file(callback=None):
 def formatServiceString(connection_type, **kwargs):
     result_string = connection_type
     result_string += ':%s=%s' * len(kwargs)
-    result_string %= itertools.chain.from_iterable(kwargs.iteritems())
+    result_string %= tuple(itertools.chain.from_iterable(kwargs.iteritems()))
+    return result_string
 
-wrap_protocol(SIMPLE_CLIENT)
+SIMPLE_CLIENT.client_class = wrap_protocol(SIMPLE_CLIENT.client_class)
 # Base commands
 
 
@@ -146,7 +150,7 @@ class ConnectionCommand(CollaborationCommand):
         Should be called when one wants to start a server
         """
         global SERVER_CONNECTION
-        server_str = formatServiceString('tcp', **kwargs)
+        server_str = formatServiceString('tcp:'+str(port), **kwargs)
         server_point = serverFromString(reactor, server_str)
         SERVER_CONNECTION = yield server_point.listen(self.server())
 
@@ -159,7 +163,7 @@ class ConnectionCommand(CollaborationCommand):
         global CLIENT_CONNECTION
 
         client_str = formatServiceString(
-            'tcp', port=port, address=address, **kwargs
+            'tcp', port=port, host=address, **kwargs
         )
         client_point = clientFromString(reactor, client_str)
         CLIENT_CONNECTION = yield client_point.connect(self.client())
@@ -222,10 +226,13 @@ class StartAcceptingConnections(ConnectionCommand):
 
         address, port = results
         try:
-            yield self.start_server(port, interface=address)
             if address == '':
+                yield self.start_server(port)
                 address = '127.0.0.1'
-            yield self.start_client(port, host=address)
+            else:
+                yield self.start_server(port, interface=address)
+
+            yield self.start_client(port, address)
         except (ValueError, CannotListenError):
             self.stop_server()
             self.stop_client()
