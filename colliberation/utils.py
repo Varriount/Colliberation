@@ -13,7 +13,8 @@ def pipeline_funcs(functions, data, can_stop, can_cancel):
         function.
 
         Arguments:
-            functions (list): A list of functions to use.
+
+functions (list): A list of functions to use.
             data (tuple): The data to use as input for the pipeline.
             can_stop (bool): Whether the pipeline can be stopped by a
                 function within the pipeline.

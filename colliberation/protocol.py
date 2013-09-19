@@ -40,6 +40,7 @@ class BaseCollaborationProtocol(Protocol, TimeoutMixin):
     This is a skeletion class, only implementing the core event
     handlers and hooks.
     """
+    # Configuration Options
     options = Options(
         timeout_rate=60,
         send_delay=.25
@@ -302,8 +303,8 @@ class CollaborationProtocol(BaseCollaborationProtocol):
 
         # Document datas
         self.open_docs = kwargs.get('open_docs', {})
-        self.shadow_docs = kwargs.get('open_docs', {})
-        self.workspaces = kwargs.get('open_docs', {})
+        self.shadow_docs = kwargs.get('shadow_docs', {})
+        self.workspaces = kwargs.get('workspaces_docs', {})
         self.current_workspace = kwargs.get('current_workspace', None)
 
         # Internal objects
