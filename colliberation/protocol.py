@@ -268,7 +268,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         """ Open a document.
 
         We retrieve the document object from available_docs to
-        open_documents, and create a shadow copy if one doesn't exist.
+        open_documents, and create a  new shadow copy if one doesn't exist.
         """
         if func_hooks is None:
             hooks = self.doc_open_hooks
@@ -276,6 +276,7 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         document = self.available_docs[data.document_id]
         shadow = self.shadow_class()
         shadow.update(document)
+        shadow.content = ""
         document = pipeline_funcs(hooks, document)
 
         if document is not None:
@@ -428,7 +429,14 @@ class CollaborationProtocol(BaseCollaborationProtocol):
         log(document.content)
         log('{0}: Shadow text after modification:'.format(self))
         log(shadow.content)
-        assert(str(hash(shadow.content)) == data.hash)
+
+        shadow_hash = str(hash(shadow.content))
+        if shadow_hash != data.hash:
+            warn(
+                "Shadow ({0}) doesn't equal data ({1})".format(
+                    shadow_hash, data.hash
+                )
+            )
 
         mods = fragile_dmp.patch_toText(
             shadow.make_patches(document.content, fragile_dmp)

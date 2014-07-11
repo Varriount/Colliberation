@@ -32,7 +32,8 @@ class CollabServerProtocol(CollaborationProtocol):
     def document_opened(self, data):
         """ Open a document.
 
-        Send a document_opened packet.
+        Send a document_opened packet, then send a text_modified packet,
+        since we assume that the document opened on the client end is blank.
         """
 
         CollaborationProtocol.document_opened(self, data)
@@ -40,6 +41,8 @@ class CollabServerProtocol(CollaborationProtocol):
                              document_id=data.document_id,
                              version=data.version)
 
+        # TODO - This doesn't take into account if the document has already
+        # been modified/is no longer blank.
         mod_packet = make_packet(
             'text_modified',
             document_id=data.document_id,

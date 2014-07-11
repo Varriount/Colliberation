@@ -82,7 +82,7 @@ class SublimeDocument(Document, EventListener):
     def name(self, value):
         self._name = value
         if self.buffer_id is not None:
-            views = views_from_buffer
+            views = views_from_buffer(self.buffer_id)
             for window, view in views:
                 view.set_name(value)
 
